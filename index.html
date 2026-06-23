@@ -167,47 +167,29 @@
       position: sticky;
       top: 0;
       text-align: center !important;
-    }
+}
+table.dataTable tbody td{
+  color:var(--text);
+  border-color:var(--border) !important;
+  background:var(--surface);
+  text-align:center !important;
+}
+table.dataTable tfoot th{
+  background:var(--surface-alt) !important;
+  color:var(--text) !important;
+  font-weight:700;
+  border-top:2px solid var(--border) !important;
+  text-align:center !important;
+}
 
-    table.dataTable tbody td {
-      color: var(--text);
-      border-color: var(--border) !important;
-      background: var(--surface);
-      text-align: center !important;
-    }
+.btn-export{
+  border:1px solid var(--border);background:var(--surface-alt);color:var(--text);
+}
+.btn-export:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
 
-    table.dataTable tfoot th {
-      background: var(--surface-alt) !important;
-      color: var(--text) !important;
-      font-weight: 700;
-      border-top: 2px solid var(--border) !important;
-      text-align: center !important;
-    }
-
-    .btn-export {
-      border: 1px solid var(--border);
-      background: var(--surface-alt);
-      color: var(--text);
-    }
-
-    .btn-export:hover {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .empty-state {
-      padding: 4rem 1rem;
-      text-align: center;
-      color: var(--text-muted);
-    }
-
-    .empty-state i {
-      font-size: 3rem;
-      color: var(--primary);
-      opacity: .6;
-    }
-  </style>
+.empty-state{padding:4rem 1rem;text-align:center;color:var(--text-muted);}
+.empty-state i{font-size:3rem;color:var(--primary);opacity:.6;}
+</style>
 </head>
 
 <body>
@@ -253,4 +235,373 @@
 
     <div id="dashboardContent" class="d-none">
 
-      <div
+      <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-3">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-hash"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiPedidos">0</div>
+              <div class="kpi-label">Total de Filas</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiPares">0</div>
+              <div class="kpi-label">Cantidad Entrega Total</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiClientes">0</div>
+              <div class="kpi-label">Clientes Únicos</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="kpi-card">
+            <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiModelos">0</div>
+              <div class="kpi-label">Materiales Distintos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel p-3 mb-4 filters-bar">
+        <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros de búsqueda rápida</div>
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-lg-3">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+              <input type="text" id="buscarGlobal" class="form-control border-start-0"
+                placeholder="Buscar en el cuadro...">
+            </div>
+          </div>
+          <div class="col-6 col-lg-2">
+            <select id="filtroSolicitante" class="form-select">
+              <option value="">Cliente (todos)</option>
+            </select>
+          </div>
+          <div class="col-6 col-lg-3">
+            <select id="filtroMaterial" class="form-select">
+              <option value="">Número de material (todos)</option>
+            </select>
+          </div>
+          <div class="col-6 col-lg-2">
+            <select id="filtroFlete" class="form-select">
+              <option value="">Flete (todos)</option>
+            </select>
+          </div>
+          <div class="col-12 col-lg-2 text-end">
+            <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100">
+              <i class="bi bi-eraser"></i> Limpiar
+            </button>
+          </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2 mt-3">
+          <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar
+            Excel</button>
+          <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar
+            CSV</button>
+          <button id="btnExportPDF" class="btn btn-sm btn-export text-white" style="background: var(--primary)"><i
+              class="bi bi-file-earmark-pdf"></i> Exportar a PDF Horizontal</button>
+        </div>
+      </div>
+
+      <div class="row g-3 mb-4">
+        <div class="col-12 col-lg-4">
+          <div class="card-panel p-3">
+            <div class="fw-semibold mb-2">Top Clientes</div>
+            <div style="height:200px; position:relative;"><canvas id="chartTopClientes"></canvas></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="card-panel p-3">
+            <div class="fw-semibold mb-2">Top Materiales</div>
+            <div style="height:200px; position:relative;"><canvas id="chartTopModelos"></canvas></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="card-panel p-3">
+            <div class="fw-semibold mb-2">Fletes</div>
+            <div style="height:200px; position:relative;"><canvas id="chartDistribucion"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-title"><i class="bi bi-table"></i> Cuadro Informativo</div>
+      <div class="card-panel" id="tabla-card">
+        <div class="table-responsive">
+          <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
+            <thead></thead>
+            <tbody></tbody>
+            <tfoot></tfoot>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+  <script>
+    // CONFIGURACIÓN DE COLUMNAS CON IDENTIFICADOR DE SAP CORREGIDO
+    const CONFIG_COLUMNAS = [
+      { excelAlternatives: ['Entrega', 'Nº entrega', 'Nºentrega'], etiqueta: 'Entrega', numerico: false },
+      { excelAlternatives: ['Solicitante', 'Solicit.'], etiqueta: 'Cliente', numerico: false },
+      { excelAlternatives: ['Referencia cliente', 'Ped.clte.'], etiqueta: 'Referencia cliente', numerico: false },
+      { excelAlternatives: ['Número de material', 'Material'], etiqueta: 'Número de material', numerico: false },
+      { excelAlternatives: ['Cantidad entrega', 'Cantidad'], etiqueta: 'Cantidad entrega', numerico: true },
+      { excelAlternatives: ['Flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
+    ];
+
+    let datosOriginales = [];
+    let tablaDT = null;
+    let chartClientes, chartModelos, chartDistribucion;
+
+    function formatoNumero(n) { return Number(n || 0).toLocaleString('es-AR'); }
+
+    const dropzone = document.getElementById('dropzone');
+    const inputArchivo = document.getElementById('inputArchivo');
+
+    dropzone.addEventListener('click', () => inputArchivo.click());
+    inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
+
+    function procesarArchivo(file) {
+      const lector = new FileReader();
+      lector.onload = (ev) => {
+        try {
+          const libro = XLSX.read(ev.target.result, { type: 'array' });
+          const hoja = libro.Sheets[libro.SheetNames[0]];
+          const filasMatriz = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '' });
+
+          if (filasMatriz.length < 2) return alert('El archivo no contiene filas válidas.');
+
+          const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim());
+
+          datosOriginales = filasMatriz.slice(1).map(filaMatriz => {
+            const filaObj = {};
+            CONFIG_COLUMNAS.forEach(col => {
+              let index = -1;
+              for (let alt of col.excelAlternatives) {
+                index = headersExcel.indexOf(alt);
+                if (index !== -1) break;
+              }
+              if (index === -1 && col.etiqueta === 'Flete a cargo de:') {
+                index = headersExcel.findIndex(h => h.toLowerCase().startsWith("flete a cargo"));
+              }
+
+              let valor = index !== -1 ? filaMatriz[index] : '';
+              filaObj[col.etiqueta] = col.numerico ? (parseFloat(valor) || 0) : String(valor ?? '').trim();
+            });
+            return filaObj;
+          });
+
+          document.getElementById('archivoInfo').classList.remove('d-none');
+          document.getElementById('nombreArchivo').textContent = `${file.name} (${datosOriginales.length} filas)`;
+          document.getElementById('zonaCarga').classList.add('d-none');
+          document.getElementById('btnCambiarArchivo').classList.remove('d-none');
+          document.getElementById('estadoVacio').classList.add('d-none');
+          document.getElementById('dashboardContent').classList.remove('d-none');
+
+          inicializarFiltros();
+          inicializarTabla();
+        } catch (err) { alert('Error al leer el archivo.'); }
+      };
+      lector.readAsArrayBuffer(file);
+    }
+
+    function inicializarTabla() {
+      if (tablaDT) { tablaDT.destroy(); }
+
+      const headersContainer = document.querySelector('#tablaPedidos thead');
+      const footersContainer = document.querySelector('#tablaPedidos tfoot');
+
+      let headHtml = '<tr>';
+      let footHtml = '<tr>';
+      CONFIG_COLUMNAS.forEach(col => {
+        headHtml += `<th>${col.etiqueta}</th>`;
+        if (col.etiqueta === 'Cantidad entrega') footHtml += `<th id="totalSumaCantidad">0</th>`;
+        else if (col.etiqueta === 'Entrega') footHtml += `<th>TOTAL</th>`;
+        else footHtml += `<th></th>`;
+      });
+      headHtml += '</tr>'; footHtml += '</tr>';
+
+      headersContainer.innerHTML = headHtml;
+      footersContainer.innerHTML = footHtml;
+
+      const columnasDT = CONFIG_COLUMNAS.map(col => ({
+        data: col.etiqueta,
+        className: 'text-center',
+        render: col.numerico ? (d) => formatoNumero(d) : null
+      }));
+
+      tablaDT = $('#tablaPedidos').DataTable({
+        data: datosOriginales,
+        columns: columnasDT,
+        scrollX: true,
+        scrollY: '45vh',
+        scrollCollapse: true,
+        pageLength: 25,
+        dom: '<"d-flex justify-content-between mb-2"l>rtip',
+        language: {
+          emptyTable: "No hay datos",
+          info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+          lengthMenu: "Mostrar _MENU_ filas",
+          paginate: { next: "Siguiente", previous: "Anterior" }
+        }
+      });
+
+      tablaDT.on('draw', actualizarDashboard);
+      actualizarDashboard();
+    }
+
+    function valoresUnicosPorEtiqueta(etiqueta) {
+      return [...new Set(datosOriginales.map(r => String(r[etiqueta]).trim()).filter(v => v !== ''))].sort();
+    }
+
+    function llenarSelect(id, valores) {
+      const select = document.getElementById(id);
+      select.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+      valores.forEach(v => {
+        const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
+        select.appendChild(opt);
+      });
+    }
+
+    function inicializarFiltros() {
+      llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Cliente'));
+      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Número de material'));
+      llenarSelect('filtroFlete', valoresUnicosPorEtiqueta('Flete a cargo de:'));
+
+      document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Cliente', 'filtroSolicitante');
+      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Número de material', 'filtroMaterial');
+      document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
+
+      document.getElementById('buscarGlobal').oninput = (e) => { if (tablaDT) tablaDT.search(e.target.value).draw(); };
+      document.getElementById('btnLimpiarFiltros').onclick = () => {
+        ['filtroSolicitante', 'filtroMaterial', 'filtroFlete'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('buscarGlobal').value = '';
+        tablaDT.columns().search('').search('').draw();
+      };
+    }
+
+    function aplicarFiltroColumna(etiqueta, idSelect) {
+      let idx = CONFIG_COLUMNAS.findIndex(c => c.etiqueta === etiqueta);
+      const val = document.getElementById(idSelect).value;
+      const escapado = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      tablaDT.column(idx).search(val ? `^${escapado}$` : '', true, false).draw();
+    }
+
+    function actualizarDashboard() {
+      if (!tablaDT) return;
+      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
+
+      const totalFilas = filas.length;
+      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
+      const totalClientes = new Set(filas.map(f => f['Cliente'])).size;
+      const totalModelos = new Set(filas.map(f => f['Número de material'])).size;
+
+      document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
+      document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
+      document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
+      document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
+      document.getElementById('totalSumaCantidad').textContent = formatoNumero(totalPares);
+
+      const mapC = new Map(); filas.forEach(f => mapC.set(f['Cliente'], (mapC.get(f['Cliente']) || 0) + (f['Cantidad entrega'] || 0)));
+      const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (chartClientes) chartClientes.destroy();
+      chartClientes = new Chart(document.getElementById('chartTopClientes'), {
+        type: 'bar', data: { labels: topC.map(c => c[0].substring(0, 12)), datasets: [{ data: topC.map(c => c[1]), backgroundColor: '#5B5FC7' }] },
+        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const mapM = new Map(); filas.forEach(f => mapM.set(f['Número de material'], (mapM.get(f['Número de material']) || 0) + (f['Cantidad entrega'] || 0)));
+      const topM = [...mapM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (chartModelos) chartModelos.destroy();
+      chartModelos = new Chart(document.getElementById('chartTopModelos'), {
+        type: 'bar', data: { labels: topM.map(m => m[0]), datasets: [{ data: topM.map(m => m[1]), backgroundColor: '#00B7C3' }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad entrega'] || 0)));
+      if (chartDistribucion) chartDistribucion.destroy();
+      chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
+        type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#8764B8'] }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } } }
+      });
+    }
+
+    // EXPORTACIONES
+    document.getElementById('btnExportExcel').addEventListener('click', () => {
+      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
+      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
+      const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
+      const libro = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(libro, hoja, 'Cuadro');
+      XLSX.writeFile(libro, 'cuadro_entregas.xlsx');
+    });
+
+    document.getElementById('btnExportCSV').addEventListener('click', () => {
+      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
+      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
+      const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
+      const blob = new Blob(['\uFEFF' + XLSX.utils.sheet_to_csv(hoja)], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cuadro_entregas.csv'; a.click();
+    });
+
+    document.getElementById('btnExportPDF').addEventListener('click', () => {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
+
+      let suma = 0;
+      const filasDatos = tablaDT.rows({ search: 'applied' }).data().toArray().map(fila => {
+        return CONFIG_COLUMNAS.map(col => {
+          let val = fila[col.etiqueta] ?? '';
+          if (col.numerico) { suma += parseFloat(val) || 0; return formatoNumero(val); }
+          return String(val);
+        });
+      });
+
+      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparación Logística', 40, 35);
+      doc.autoTable({
+        head: [cabeceras], body: filasDatos, startY: 60, margin: { left: 40 },
+        styles: { fontSize: 8, halign: 'center' },
+        headStyles: { fillColor: [91, 95, 199] },
+        columnStyles: {
+          0: { cellWidth: 80 }, // Entrega (Nº entrega)
+          1: { cellWidth: 140 }, // Cliente
+          2: { cellWidth: 120 }, // Referencia cliente
+          3: { cellWidth: 100 }, // Material
+          4: { cellWidth: 60 }, // Cantidad
+          5: { cellWidth: 'auto' }
+        }
+      });
+      doc.save('reporte_entregas.pdf');
+    });
+
+    document.getElementById('btnTema').addEventListener('click', () => {
+      const html = document.documentElement;
+      const esOscuro = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', esOscuro ? 'light' : 'dark');
+    });
+  </script>
+</body>
+
+</html>
