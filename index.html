@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="light">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Pedidos de Producción</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Pedidos de Producción</title>
 
-  <!-- =======================================================================
+<!-- =======================================================================
      LIBRERÍAS EXTERNAS (CDN)
      - Bootstrap 5 -> estructura, grid y componentes UI
      - Bootstrap Icons -> iconografía
@@ -16,958 +15,846 @@
      - SheetJS (xlsx) -> lectura del Excel en el navegador
      - jsPDF + autotable -> exportación a PDF
      ======================================================================= -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
 
-  <style>
-    /* ===========================================================================
+<style>
+/* ===========================================================================
    TOKENS DE DISEÑO (modo claro / modo oscuro)
    Paleta corporativa inspirada en Power BI / Microsoft Fabric / SAP:
    morado-azulado como color de marca, teal como acento, grises neutros.
    =========================================================================== */
-    :root {
-      --bg: #F3F2F1;
-      --surface: #FFFFFF;
-      --surface-alt: #FAFAFA;
-      --text: #201F1E;
-      --text-muted: #605E5C;
-      --border: #E1DFDD;
-      --primary: #5B5FC7;
-      --primary-dark: #464775;
-      --accent: #00B7C3;
-      --success: #107C10;
-      --warning: #C19C00;
-      --danger: #D13438;
-      --shadow: 0 2px 10px rgba(31, 30, 29, 0.08);
-      --shadow-hover: 0 6px 18px rgba(31, 30, 29, 0.14);
-      --radius: 12px;
-    }
-
-    html[data-theme="dark"] {
-      --bg: #1B1A19;
-      --surface: #252423;
-      --surface-alt: #2D2C2B;
-      --text: #F3F2F1;
-      --text-muted: #C8C6C4;
-      --border: #3B3A39;
-      --primary: #8B8FE0;
-      --primary-dark: #6A6FCB;
-      --accent: #34D6E0;
-      --shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-      --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.55);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
-      transition: background .25s ease, color .25s ease;
-    }
-
-    /* ---------- Barra superior ---------- */
-    .topbar {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      color: #fff;
-      box-shadow: var(--shadow);
-    }
-
-    .topbar .brand-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, .18);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-    }
-
-    .theme-switch {
-      cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, .4);
-      background: rgba(255, 255, 255, .1);
-      color: #fff;
-      border-radius: 30px;
-      padding: .35rem .9rem;
-      font-size: .85rem;
-    }
-
-    .theme-switch:hover {
-      background: rgba(255, 255, 255, .2);
-    }
-
-    /* ---------- Tarjetas genéricas ---------- */
-    .card-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      transition: box-shadow .2s ease;
-    }
-
-    .card-panel:hover {
-      box-shadow: var(--shadow-hover);
-    }
-
-    /* ---------- Zona de carga / drag&drop ---------- */
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      background: var(--surface-alt);
-      padding: 2.5rem 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: .2s ease;
-    }
-
-    .dropzone.dragover {
-      border-color: var(--primary);
-      background: rgba(91, 95, 199, .08);
-    }
-
-    .dropzone i {
-      font-size: 2.4rem;
-      color: var(--primary);
-    }
-
-    /* ---------- Tarjetas KPI ---------- */
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 1.1rem 1.3rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      height: 100%;
-    }
-
-    .kpi-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      color: #fff;
-      flex-shrink: 0;
-    }
-
-    .kpi-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .kpi-label {
-      font-size: .78rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    /* ---------- Sección título ---------- */
-    .section-title {
-      font-size: .95rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin-bottom: .6rem;
-    }
-
-    /* ---------- Filtros ---------- */
-    .filters-bar .form-select,
-    .filters-bar .form-control {
-      background: var(--surface-alt);
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .filters-bar .form-select:focus,
-    .filters-bar .form-control:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 .2rem rgba(91, 95, 199, .15);
-    }
-
-    /* ---------- Gráficos ---------- */
-    .chart-card {
-      padding: 1.1rem 1.2rem;
-    }
-
-    .chart-wrap {
-      position: relative;
-      height: 280px;
-    }
-
-    /* ---------- Tabla ---------- */
-    #tabla-card {
-      padding: 1.2rem;
-    }
-
-    table.dataTable thead th {
-      background: var(--surface-alt);
-      color: var(--text);
-      border-bottom: 2px solid var(--primary) !important;
-      position: sticky;
-      top: 0;
-    }
-
-    table.dataTable tbody td {
-      color: var(--text);
-      border-color: var(--border) !important;
-      background: var(--surface);
-    }
-
-    table.dataTable.stripe tbody tr.odd td,
-    table.dataTable.hover tbody tr:hover td {
-      background: var(--surface-alt) !important;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-      color: var(--text) !important;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-      background: var(--primary) !important;
-      border-color: var(--primary) !important;
-      color: #fff !important;
-    }
-
-    .dataTables_wrapper .dataTables_info,
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter {
-      color: var(--text-muted) !important;
-    }
-
-    .dataTables_scrollHead {
-      background: var(--surface-alt);
-    }
-
-    .btn-export {
-      border: 1px solid var(--border);
-      background: var(--surface-alt);
-      color: var(--text);
-    }
-
-    .btn-export:hover {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .empty-state {
-      padding: 4rem 1rem;
-      text-align: center;
-      color: var(--text-muted);
-    }
-
-    .empty-state i {
-      font-size: 3rem;
-      color: var(--primary);
-      opacity: .6;
-    }
-
-    @media (max-width:768px) {
-      .kpi-value {
-        font-size: 1.3rem;
-      }
-
-      .chart-wrap {
-        height: 220px;
-      }
-    }
-  </style>
-</head>
-
-<body>
-
-  <!-- =======================================================================
-     1. BARRA SUPERIOR
-     ======================================================================= -->
-  <nav class="topbar py-3 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
-    <div class="d-flex align-items-center gap-3">
-      <div class="brand-icon"><i class="bi bi-bar-chart-line-fill"></i></div>
-      <div>
-        <div class="fw-bold fs-5">Panel de Pedidos de Producción</div>
-        <div class="small opacity-75">Análisis de cantidades a preparar por cliente y modelo</div>
-      </div>
-    </div>
-    <div class="d-flex align-items-center gap-2">
-      <button id="btnCambiarArchivo" class="btn btn-sm btn-light d-none">
-        <i class="bi bi-upload"></i> <span class="d-none d-md-inline">Cambiar archivo</span>
-      </button>
-      <button id="btnTema" class="theme-switch">
-        <i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>
-      </button>
-    </div>
-  </nav>
-
-  <div class="container-fluid px-3 px-md-4 py-4">
-
-    <!-- =====================================================================
-       2. ZONA DE CARGA DE ARCHIVO (drag & drop / selección manual)
-       ===================================================================== -->
-    <div id="zonaCarga" class="card-panel p-3 mb-4">
-      <div id="dropzone" class="dropzone">
-        <i class="bi bi-file-earmark-spreadsheet d-block mb-2"></i>
-        <div class="fw-semibold mb-1">Arrastra tu archivo Excel aquí o hace clic para seleccionarlo</div>
-        <div class="text-muted small">Formatos admitidos: .xlsx, .xls</div>
-        <input type="file" id="inputArchivo" accept=".xlsx,.xls" class="d-none">
-      </div>
-      <div id="archivoInfo" class="d-flex align-items-center gap-2 mt-2 small text-muted d-none">
-        <i class="bi bi-check-circle-fill text-success"></i>
-        <span id="nombreArchivo"></span>
-      </div>
-    </div>
-
-    <!-- Estado vacío inicial -->
-    <div id="estadoVacio" class="empty-state">
-      <i class="bi bi-clipboard-data d-block mb-2"></i>
-      <div class="fs-5 fw-semibold">Todavía no cargaste ningún pedido</div>
-      <div>Subí un archivo Excel para ver los KPIs, gráficos y el detalle de pedidos.</div>
-    </div>
-
-    <!-- =====================================================================
-       CONTENIDO DEL DASHBOARD (oculto hasta cargar datos)
-       ===================================================================== -->
-    <div id="dashboardContent" class="d-none">
-
-      <!-- 3. TARJETAS KPI -->
-      <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-receipt"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiPedidos">0</div>
-              <div class="kpi-label">Total de pedidos</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiPares">0</div>
-              <div class="kpi-label">Pares a preparar</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiClientes">0</div>
-              <div class="kpi-label">Total de clientes</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiModelos">0</div>
-              <div class="kpi-label">Total de modelos</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4. FILTROS -->
-      <div class="card-panel p-3 mb-4 filters-bar">
-        <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros</div>
-        <div class="row g-2 align-items-center">
-          <div class="col-12 col-lg-3">
-            <div class="input-group">
-              <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
-              <input type="text" id="buscarGlobal" class="form-control border-start-0"
-                placeholder="Buscar en todos los campos...">
-            </div>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroCliente" class="form-select">
-              <option value="">Cliente (todos)</option>
-            </select>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroPedido" class="form-select">
-              <option value="">Pedido (todos)</option>
-            </select>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroOC" class="form-select">
-              <option value="">OC (todas)</option>
-            </select>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroModelo" class="form-select">
-              <option value="">Modelo (todos)</option>
-            </select>
-          </div>
-          <div class="col-12 col-lg-1 text-end">
-            <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100" title="Limpiar filtros">
-              <i class="bi bi-eraser"></i>
-            </button>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar
-            Excel</button>
-          <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar
-            CSV</button>
-          <button id="btnExportPDF" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-pdf"></i> Exportar
-            PDF</button>
-        </div>
-      </div>
-
-      <!-- 5. GRÁFICOS -->
-      <div class="section-title"><i class="bi bi-graph-up"></i> Análisis visual</div>
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Top 10 clientes por cantidad</div>
-            <div class="chart-wrap"><canvas id="chartTopClientes"></canvas></div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Top 10 modelos más pedidos</div>
-            <div class="chart-wrap"><canvas id="chartTopModelos"></canvas></div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Distribución de cantidad por cliente</div>
-            <div class="chart-wrap"><canvas id="chartDistribucion"></canvas></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 6. TABLA DE PEDIDOS -->
-      <div class="section-title"><i class="bi bi-table"></i> Detalle de pedidos</div>
-      <div class="card-panel" id="tabla-card">
-        <div class="table-responsive">
-          <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-    </div><!-- /dashboardContent -->
-  </div><!-- /container -->
-
-  <!-- =======================================================================
-     LIBRERÍAS JS (CDN)
-     ======================================================================= -->
-  <!-- SheetJS (xlsx): se intenta cargar desde varios CDN por si alguno está
-     bloqueado por la red/firewall del usuario (causa típica del error
-     "XLSX is not defined"). Si todos fallan, se avisa en pantalla. -->
-  <script>
-    (function cargarSheetJS(fuentes) {
-      function intentar(i) {
-        if (i >= fuentes.length) {
-          window.__xlsxCargaFallida = true;
-          console.error('No se pudo cargar la librería SheetJS (xlsx) desde ningún CDN.');
-          return;
-        }
-        const s = document.createElement('script');
-        s.src = fuentes[i];
-        s.onload = () => { window.__xlsxListo = true; };
-        s.onerror = () => intentar(i + 1);
-        document.head.appendChild(s);
-      }
-      intentar(0);
-    })([
-      'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-      'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
-      'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
-    ]);
-  </script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
-
-  <script>
-    /* =============================================================================
-       1. CONFIGURACIÓN GLOBAL Y ALIAS DE COLUMNAS
-       El Excel real puede traer encabezados distintos según el sistema de origen
-       (ERP, SAP, exportes manuales, etc). Para que el panel funcione "out of the
-       box" con la mayor cantidad de archivos posible, se intenta detectar de forma
-       automática cuál columna corresponde a Cliente / Pedido / OC / Modelo /
-       Cantidad comparando los encabezados contra una lista de alias conocidos.
-       ============================================================================= */
-    const ALIAS = {
-      cliente: ['cliente', 'nombrecliente', 'razonsocial', 'destinatariodemercancias', 'customer', 'nombredelcliente'],
-      pedido: ['numerodepedido', 'pedido', 'nropedido', 'numpedido', 'docventa', 'documentodeventas', 'order', 'ordernumber'],
-      oc: ['oc', 'ordendecompra', 'pedclte', 'pedidocliente', 'referenciacliente', 'customerpo', 'po', 'numerodeoc'],
-      modelo: ['modelo', 'descripciondeposicion', 'material', 'producto', 'item', 'model', 'articulo', 'referencia'],
-      cantidad: ['cantidadapreparar', 'cantidadpedida', 'cantidad', 'qty', 'cant', 'cantidadtotal', 'unidades', 'pares']
-    };
-    // Paleta de colores para los gráficos (estilo Power BI / Fabric)
-    const PALETA = ['#5B5FC7', '#00B7C3', '#0078D4', '#8764B8', '#107C10', '#C19C00', '#D13438', '#605E5C', '#FF8C00', '#038387'];
-
-    // Estado global de la aplicación
-    let datosOriginales = [];   // filas crudas leídas del Excel
-    let columnasMapeadas = {};  // { cliente:'HeaderReal', pedido:'...', oc:'...', modelo:'...', cantidad:'...' }
-    let columnasHoja = [];      // encabezados originales del Excel, en orden
-    let tablaDT = null;         // instancia de DataTable
-    let chartClientes, chartModelos, chartDistribucion; // instancias de Chart.js
-
-    /* =============================================================================
-       2. UTILIDADES
-       ============================================================================= */
-    function normalizar(texto) {
-      return String(texto ?? '')
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
-        .replace(/[^a-z0-9]/g, ''); // quita espacios y puntuación
-    }
-    function formatoNumero(n) {
-      return Number(n || 0).toLocaleString('es-AR');
-    }
-    function colorTexto() {
-      return getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
-    }
-    function colorBorde() {
-      return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
-    }
-
-    /* =============================================================================
-       3. MAPEADO DE COLUMNAS
-       Detecta, dentro de los encabezados reales del Excel, cuál corresponde a
-       cada campo clave del negocio (cliente, pedido, oc, modelo, cantidad).
-       ============================================================================= */
-    function mapearColumnas(headers) {
-      const mapa = {};
-      const usados = new Set();
-
-      // Paso 1: coincidencia exacta contra los alias normalizados
-      Object.keys(ALIAS).forEach(campo => {
-        for (const header of headers) {
-          if (usados.has(header)) continue;
-          if (ALIAS[campo].includes(normalizar(header))) {
-            mapa[campo] = header; usados.add(header); break;
-          }
-        }
-      });
-      // Paso 2: coincidencia parcial (includes) para los campos que no se resolvieron
-      Object.keys(ALIAS).forEach(campo => {
-        if (mapa[campo]) return;
-        for (const header of headers) {
-          if (usados.has(header)) continue;
-          const h = normalizar(header);
-          if (ALIAS[campo].some(alias => h.includes(alias) || alias.includes(h))) {
-            mapa[campo] = header; usados.add(header); break;
-          }
-        }
-      });
-      return mapa;
-    }
-
-    /* =============================================================================
-       4. MANEJO DE ARCHIVO (selección manual + drag & drop + lectura con SheetJS)
-       ============================================================================= */
-    const dropzone = document.getElementById('dropzone');
-    const inputArchivo = document.getElementById('inputArchivo');
-
-    dropzone.addEventListener('click', () => inputArchivo.click());
-    inputArchivo.addEventListener('change', e => {
-      if (e.target.files[0]) procesarArchivo(e.target.files[0]);
-    });
-    ['dragenter', 'dragover'].forEach(evt => {
-      dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-    });
-    ['dragleave', 'drop'].forEach(evt => {
-      dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
-    });
-    dropzone.addEventListener('drop', e => {
-      const file = e.dataTransfer.files[0];
-      if (file) procesarArchivo(file);
-    });
-    document.getElementById('btnCambiarArchivo').addEventListener('click', () => {
-      document.getElementById('zonaCarga').classList.remove('d-none');
-      inputArchivo.click();
-    });
-
-    function procesarArchivo(file) {
-      // Si la librería SheetJS todavía no terminó de cargar (red lenta), se espera
-      // un instante y se reintenta antes de declarar el error definitivamente.
-      if (typeof XLSX === 'undefined') {
-        if (window.__xlsxCargaFallida) {
-          alert('No se pudo cargar la librería para leer Excel (XLSX). Verificá tu conexión a internet o que tu red no esté bloqueando los CDN, y volvé a intentar.');
-          return;
-        }
-        setTimeout(() => procesarArchivo(file), 400);
-        return;
-      }
-
-      const lector = new FileReader();
-      lector.onload = (ev) => {
-        try {
-          const libro = XLSX.read(ev.target.result, { type: 'array' });
-          const hoja = libro.Sheets[libro.SheetNames[0]];
-
-          // Se lee primero como matriz (header:1) y se deduplican los encabezados
-          // repetidos (ej: "UM", "UM", "Un", "Un"...) para que ninguna columna se
-          // pise por tener el mismo nombre que otra.
-          const filasMatriz = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '' });
-          if (filasMatriz.length < 2) {
-            alert('El archivo no contiene filas de datos.');
-            return;
-          }
-          const contador = {};
-          const headers = filasMatriz[0].map(h => {
-            const base = String(h ?? '').trim() || 'Columna';
-            contador[base] = (contador[base] || 0) + 1;
-            return contador[base] === 1 ? base : `${base} (${contador[base]})`;
-          });
-          const filas = filasMatriz.slice(1).map(fila => {
-            const obj = {};
-            headers.forEach((h, i) => obj[h] = fila[i] ?? '');
-            return obj;
-          });
-          if (!filas.length) {
-            alert('El archivo no contiene filas de datos.');
-            return;
-          }
-          datosOriginales = filas;
-          columnasHoja = Object.keys(filas[0]);
-          columnasMapeadas = mapearColumnas(columnasHoja);
-
-          document.getElementById('archivoInfo').classList.remove('d-none');
-          document.getElementById('nombreArchivo').textContent = `${file.name} (${filas.length} filas)`;
-          document.getElementById('zonaCarga').classList.add('d-none');
-          document.getElementById('btnCambiarArchivo').classList.remove('d-none');
-          document.getElementById('estadoVacio').classList.add('d-none');
-          document.getElementById('dashboardContent').classList.remove('d-none');
-
-          inicializarFiltros();
-          inicializarTabla();
-        } catch (err) {
-          console.error(err);
-          alert('No se pudo leer el archivo. Verificá que sea un Excel válido (.xlsx/.xls).');
-        }
-      };
-      lector.readAsArrayBuffer(file);
-    }
-
-    /* =============================================================================
-       5. INICIALIZACIÓN DE LA TABLA (DataTables)
-       ============================================================================= */
-    function inicializarTabla() {
-      if (tablaDT) { tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML = ''; }
-
-      // Las columnas mostradas son todas las del Excel, priorizando los 5 campos
-      // de negocio principales al inicio (cuando se logran detectar).
-      const prioridad = ['cliente', 'pedido', 'oc', 'modelo', 'cantidad']
-        .map(c => columnasMapeadas[c]).filter(Boolean);
-
-      const resto = columnasHoja.filter(h => !prioridad.includes(h));
-
-      const ordenColumnas = [...prioridad, ...resto];
-
-      const ordenColumnas = [
-        'Entrega',
-        'Solicitante',
-        'Material',
-        'Número de material',
-        'Cantidad entrega',
-        'Referencia cliente',
-        'Flete a cargo de:'
-      ];
-    });
-
-    tablaDT = $('#tablaPedidos').DataTable({
-      data: datosOriginales,
-      columns: columnasDT,
-      destroy: true,
-      scrollX: true,
-      scrollY: '48vh',
-      scrollCollapse: true,
-      deferRender: true,
-      dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rt<"d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"ip>',
-      pageLength: 25,
-      lengthMenu: [10, 25, 50, 100],
-      language: {
-        decimal: ",",
-        thousands: ".",
-        emptyTable: "No hay datos disponibles",
-        info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-        lengthMenu: "Mostrar _MENU_ registros",
-        search: "Buscar:",
-        paginate: { first: "Primero", last: "Último", next: "Siguiente", previous: "Anterior" }
-      }
-    });
-
-    // Recalcular KPIs y gráficos cada vez que la tabla se redibuja (por filtros,
-    // búsqueda u ordenamiento), para que el dashboard refleje siempre lo visible.
-    tablaDT.on('draw', actualizarDashboard);
-    actualizarDashboard();
+:root{
+  --bg:#F3F2F1;
+  --surface:#FFFFFF;
+  --surface-alt:#FAFAFA;
+  --text:#201F1E;
+  --text-muted:#605E5C;
+  --border:#E1DFDD;
+  --primary:#5B5FC7;
+  --primary-dark:#464775;
+  --accent:#00B7C3;
+  --success:#107C10;
+  --warning:#C19C00;
+  --danger:#D13438;
+  --shadow:0 2px 10px rgba(31,30,29,0.08);
+  --shadow-hover:0 6px 18px rgba(31,30,29,0.14);
+  --radius:12px;
+}
+html[data-theme="dark"]{
+  --bg:#1B1A19;
+  --surface:#252423;
+  --surface-alt:#2D2C2B;
+  --text:#F3F2F1;
+  --text-muted:#C8C6C4;
+  --border:#3B3A39;
+  --primary:#8B8FE0;
+  --primary-dark:#6A6FCB;
+  --accent:#34D6E0;
+  --shadow:0 2px 10px rgba(0,0,0,0.45);
+  --shadow-hover:0 6px 20px rgba(0,0,0,0.55);
 }
 
-    /* =============================================================================
-       6. FILTROS (selects independientes + búsqueda global + limpiar)
-       ============================================================================= */
-    function valoresUnicos(campo) {
-      const col = columnasMapeadas[campo];
-      if (!col) return [];
-      return [...new Set(datosOriginales.map(r => String(r[col]).trim()).filter(v => v !== ''))]
-        .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  transition:background .25s ease,color .25s ease;
+}
+
+/* ---------- Barra superior ---------- */
+.topbar{
+  background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+  color:#fff;
+  box-shadow:var(--shadow);
+}
+.topbar .brand-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+}
+.theme-switch{
+  cursor:pointer;border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.1);color:#fff;border-radius:30px;
+  padding:.35rem .9rem;font-size:.85rem;
+}
+.theme-switch:hover{background:rgba(255,255,255,.2);}
+
+/* ---------- Tarjetas genéricas ---------- */
+.card-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s ease;
+}
+.card-panel:hover{box-shadow:var(--shadow-hover);}
+
+/* ---------- Zona de carga / drag&drop ---------- */
+.dropzone{
+  border:2px dashed var(--border);
+  border-radius:var(--radius);
+  background:var(--surface-alt);
+  padding:2.5rem 1rem;
+  text-align:center;
+  cursor:pointer;
+  transition:.2s ease;
+}
+.dropzone.dragover{
+  border-color:var(--primary);
+  background:rgba(91,95,199,.08);
+}
+.dropzone i{font-size:2.4rem;color:var(--primary);}
+
+/* ---------- Tarjetas KPI ---------- */
+.kpi-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:1.1rem 1.3rem;
+  display:flex;align-items:center;gap:1rem;
+  height:100%;
+}
+.kpi-icon{
+  width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;color:#fff;flex-shrink:0;
+}
+.kpi-value{font-size:1.6rem;font-weight:700;line-height:1.1;}
+.kpi-label{font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
+
+/* ---------- Sección título ---------- */
+.section-title{
+  font-size:.95rem;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem;
+}
+
+/* ---------- Filtros ---------- */
+.filters-bar .form-select,
+.filters-bar .form-control{
+  background:var(--surface-alt);
+  border:1px solid var(--border);
+  color:var(--text);
+}
+.filters-bar .form-select:focus,
+.filters-bar .form-control:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 .2rem rgba(91,95,199,.15);
+}
+
+/* ---------- Gráficos ---------- */
+.chart-card{padding:1.1rem 1.2rem;}
+.chart-wrap{position:relative;height:280px;}
+
+/* ---------- Tabla ---------- */
+#tabla-card{padding:1.2rem;}
+table.dataTable thead th{
+  background:var(--surface-alt);
+  color:var(--text);
+  border-bottom:2px solid var(--primary) !important;
+  position:sticky;top:0;
+}
+table.dataTable tbody td{
+  color:var(--text);
+  border-color:var(--border) !important;
+  background:var(--surface);
+}
+table.dataTable.stripe tbody tr.odd td,
+table.dataTable.hover tbody tr:hover td{
+  background:var(--surface-alt) !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button{color:var(--text) !important;}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current{
+  background:var(--primary) !important;border-color:var(--primary) !important;color:#fff !important;
+}
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter{color:var(--text-muted) !important;}
+.dataTables_scrollHead{background:var(--surface-alt);}
+
+.btn-export{
+  border:1px solid var(--border);background:var(--surface-alt);color:var(--text);
+}
+.btn-export:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+.empty-state{padding:4rem 1rem;text-align:center;color:var(--text-muted);}
+.empty-state i{font-size:3rem;color:var(--primary);opacity:.6;}
+
+@media (max-width:768px){
+  .kpi-value{font-size:1.3rem;}
+  .chart-wrap{height:220px;}
+}
+</style>
+</head>
+<body>
+
+<!-- =======================================================================
+     1. BARRA SUPERIOR
+     ======================================================================= -->
+<nav class="topbar py-3 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
+  <div class="d-flex align-items-center gap-3">
+    <div class="brand-icon"><i class="bi bi-bar-chart-line-fill"></i></div>
+    <div>
+      <div class="fw-bold fs-5">Panel de Pedidos de Producción</div>
+      <div class="small opacity-75">Análisis de cantidades a preparar por cliente y modelo</div>
+    </div>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button id="btnCambiarArchivo" class="btn btn-sm btn-light d-none">
+      <i class="bi bi-upload"></i> <span class="d-none d-md-inline">Cambiar archivo</span>
+    </button>
+    <button id="btnTema" class="theme-switch">
+      <i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>
+    </button>
+  </div>
+</nav>
+
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <!-- =====================================================================
+       2. ZONA DE CARGA DE ARCHIVO (drag & drop / selección manual)
+       ===================================================================== -->
+  <div id="zonaCarga" class="card-panel p-3 mb-4">
+    <div id="dropzone" class="dropzone">
+      <i class="bi bi-file-earmark-spreadsheet d-block mb-2"></i>
+      <div class="fw-semibold mb-1">Arrastra tu archivo Excel aquí o hace clic para seleccionarlo</div>
+      <div class="text-muted small">Formatos admitidos: .xlsx, .xls</div>
+      <input type="file" id="inputArchivo" accept=".xlsx,.xls" class="d-none">
+    </div>
+    <div id="archivoInfo" class="d-flex align-items-center gap-2 mt-2 small text-muted d-none">
+      <i class="bi bi-check-circle-fill text-success"></i>
+      <span id="nombreArchivo"></span>
+    </div>
+  </div>
+
+  <!-- Estado vacío inicial -->
+  <div id="estadoVacio" class="empty-state">
+    <i class="bi bi-clipboard-data d-block mb-2"></i>
+    <div class="fs-5 fw-semibold">Todavía no cargaste ningún pedido</div>
+    <div>Subí un archivo Excel para ver los KPIs, gráficos y el detalle de pedidos.</div>
+  </div>
+
+  <!-- =====================================================================
+       CONTENIDO DEL DASHBOARD (oculto hasta cargar datos)
+       ===================================================================== -->
+  <div id="dashboardContent" class="d-none">
+
+    <!-- 3. TARJETAS KPI -->
+    <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-receipt"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiPedidos">0</div>
+            <div class="kpi-label">Total de pedidos</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiPares">0</div>
+            <div class="kpi-label">Pares a preparar</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiClientes">0</div>
+            <div class="kpi-label">Total de clientes</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiModelos">0</div>
+            <div class="kpi-label">Total de modelos</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. FILTROS -->
+    <div class="card-panel p-3 mb-4 filters-bar">
+      <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros</div>
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-lg-3">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" id="buscarGlobal" class="form-control border-start-0" placeholder="Buscar en todos los campos...">
+          </div>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroCliente" class="form-select"><option value="">Cliente (todos)</option></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroPedido" class="form-select"><option value="">Pedido (todos)</option></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroOC" class="form-select"><option value="">OC (todas)</option></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroModelo" class="form-select"><option value="">Modelo (todos)</option></select>
+        </div>
+        <div class="col-12 col-lg-1 text-end">
+          <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100" title="Limpiar filtros">
+            <i class="bi bi-eraser"></i>
+          </button>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
+        <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar CSV</button>
+        <button id="btnExportPDF" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF</button>
+      </div>
+    </div>
+
+    <!-- 5. GRÁFICOS -->
+    <div class="section-title"><i class="bi bi-graph-up"></i> Análisis visual</div>
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Top 10 clientes por cantidad</div>
+          <div class="chart-wrap"><canvas id="chartTopClientes"></canvas></div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Top 10 modelos más pedidos</div>
+          <div class="chart-wrap"><canvas id="chartTopModelos"></canvas></div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Distribución de cantidad por cliente</div>
+          <div class="chart-wrap"><canvas id="chartDistribucion"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. TABLA DE PEDIDOS -->
+    <div class="section-title"><i class="bi bi-table"></i> Detalle de pedidos</div>
+    <div class="card-panel" id="tabla-card">
+      <div class="table-responsive">
+        <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /dashboardContent -->
+</div><!-- /container -->
+
+<!-- =======================================================================
+     LIBRERÍAS JS (CDN)
+     ======================================================================= -->
+<!-- SheetJS (xlsx): se intenta cargar desde varios CDN por si alguno está
+     bloqueado por la red/firewall del usuario (causa típica del error
+     "XLSX is not defined"). Si todos fallan, se avisa en pantalla. -->
+<script>
+(function cargarSheetJS(fuentes){
+  function intentar(i){
+    if(i >= fuentes.length){
+      window.__xlsxCargaFallida = true;
+      console.error('No se pudo cargar la librería SheetJS (xlsx) desde ningún CDN.');
+      return;
     }
+    const s = document.createElement('script');
+    s.src = fuentes[i];
+    s.onload = ()=>{ window.__xlsxListo = true; };
+    s.onerror = ()=> intentar(i+1);
+    document.head.appendChild(s);
+  }
+  intentar(0);
+})([
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+  'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
+]);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
-    function llenarSelect(id, valores) {
-      const select = document.getElementById(id);
-      const actual = select.value;
-      select.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
-      valores.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v; opt.textContent = v;
-        select.appendChild(opt);
-      });
-      if (valores.includes(actual)) select.value = actual;
-    }
+<script>
+/* =============================================================================
+   1. CONFIGURACIÓN GLOBAL Y ALIAS DE COLUMNAS
+   El Excel real puede traer encabezados distintos según el sistema de origen
+   (ERP, SAP, exportes manuales, etc). Para que el panel funcione "out of the
+   box" con la mayor cantidad de archivos posible, se intenta detectar de forma
+   automática cuál columna corresponde a Cliente / Pedido / OC / Modelo /
+   Cantidad comparando los encabezados contra una lista de alias conocidos.
+   ============================================================================= */
+const ALIAS = {
+  cliente:  ['cliente','nombrecliente','razonsocial','destinatariodemercancias','customer','nombredelcliente'],
+  pedido:   ['numerodepedido','pedido','nropedido','numpedido','docventa','documentodeventas','order','ordernumber'],
+  oc:       ['oc','ordendecompra','pedclte','pedidocliente','referenciacliente','customerpo','po','numerodeoc'],
+  modelo:   ['modelo','descripciondeposicion','material','producto','item','model','articulo','referencia'],
+  cantidad: ['cantidadapreparar','cantidadpedida','cantidad','qty','cant','cantidadtotal','unidades','pares']
+};
+// Paleta de colores para los gráficos (estilo Power BI / Fabric)
+const PALETA = ['#5B5FC7','#00B7C3','#0078D4','#8764B8','#107C10','#C19C00','#D13438','#605E5C','#FF8C00','#038387'];
 
-    function inicializarFiltros() {
-      llenarSelect('filtroCliente', valoresUnicos('cliente'));
-      llenarSelect('filtroPedido', valoresUnicos('pedido'));
-      llenarSelect('filtroOC', valoresUnicos('oc'));
-      llenarSelect('filtroModelo', valoresUnicos('modelo'));
+// Estado global de la aplicación
+let datosOriginales = [];   // filas crudas leídas del Excel
+let columnasMapeadas = {};  // { cliente:'HeaderReal', pedido:'...', oc:'...', modelo:'...', cantidad:'...' }
+let columnasHoja = [];      // encabezados originales del Excel, en orden
+let tablaDT = null;         // instancia de DataTable
+let chartClientes, chartModelos, chartDistribucion; // instancias de Chart.js
 
-      document.getElementById('filtroCliente').onchange = () => aplicarFiltroColumna('cliente', 'filtroCliente');
-      document.getElementById('filtroPedido').onchange = () => aplicarFiltroColumna('pedido', 'filtroPedido');
-      document.getElementById('filtroOC').onchange = () => aplicarFiltroColumna('oc', 'filtroOC');
-      document.getElementById('filtroModelo').onchange = () => aplicarFiltroColumna('modelo', 'filtroModelo');
+/* =============================================================================
+   2. UTILIDADES
+   ============================================================================= */
+function normalizar(texto){
+  return String(texto ?? '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // quita acentos
+    .replace(/[^a-z0-9]/g,''); // quita espacios y puntuación
+}
+function formatoNumero(n){
+  return Number(n || 0).toLocaleString('es-AR');
+}
+function colorTexto(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+}
+function colorBorde(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+}
 
-      document.getElementById('buscarGlobal').oninput = (e) => {
-        if (tablaDT) tablaDT.search(e.target.value).draw();
-      };
+/* =============================================================================
+   3. MAPEADO DE COLUMNAS
+   Detecta, dentro de los encabezados reales del Excel, cuál corresponde a
+   cada campo clave del negocio (cliente, pedido, oc, modelo, cantidad).
+   ============================================================================= */
+function mapearColumnas(headers){
+  const mapa = {};
+  const usados = new Set();
 
-      document.getElementById('btnLimpiarFiltros').onclick = limpiarFiltros;
-    }
-
-    function aplicarFiltroColumna(campo, idSelect) {
-      const col = columnasMapeadas[campo];
-      if (!col || !tablaDT) return;
-      const valor = document.getElementById(idSelect).value;
-      const idx = tablaDT.column(`${col}:name`)?.index() ?? buscarIndiceColumna(col);
-      // Escapa caracteres especiales de regex para hacer una búsqueda exacta de columna
-      const escapado = valor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      tablaDT.column(idx).search(valor ? `^${escapado}$` : '', true, false).draw();
-    }
-    function buscarIndiceColumna(headerName) {
-      let idx = -1;
-      tablaDT.settings()[0].aoColumns.forEach((c, i) => { if (c.data === headerName) idx = i; });
-      return idx;
-    }
-
-    function limpiarFiltros() {
-      ['filtroCliente', 'filtroPedido', 'filtroOC', 'filtroModelo'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('buscarGlobal').value = '';
-      if (tablaDT) {
-        tablaDT.columns().search('');
-        tablaDT.search('').draw();
+  // Paso 1: coincidencia exacta contra los alias normalizados
+  Object.keys(ALIAS).forEach(campo=>{
+    for(const header of headers){
+      if(usados.has(header)) continue;
+      if(ALIAS[campo].includes(normalizar(header))){
+        mapa[campo] = header; usados.add(header); break;
       }
     }
-
-    /* =============================================================================
-       7. CÁLCULO DE KPIs Y 8. ACTUALIZACIÓN DE GRÁFICOS
-       Trabajan siempre sobre las filas actualmente visibles en la tabla (es decir,
-       respetando los filtros y la búsqueda aplicados), para un panel verdaderamente
-       interactivo tipo BI.
-       ============================================================================= */
-    function actualizarDashboard() {
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
-      actualizarKPIs(filas);
-      actualizarGraficos(filas);
+  });
+  // Paso 2: coincidencia parcial (includes) para los campos que no se resolvieron
+  Object.keys(ALIAS).forEach(campo=>{
+    if(mapa[campo]) return;
+    for(const header of headers){
+      if(usados.has(header)) continue;
+      const h = normalizar(header);
+      if(ALIAS[campo].some(alias=> h.includes(alias) || alias.includes(h))){
+        mapa[campo] = header; usados.add(header); break;
+      }
     }
+  });
+  return mapa;
+}
 
-    function actualizarKPIs(filas) {
-      const cCliente = columnasMapeadas.cliente, cPedido = columnasMapeadas.pedido,
+/* =============================================================================
+   4. MANEJO DE ARCHIVO (selección manual + drag & drop + lectura con SheetJS)
+   ============================================================================= */
+const dropzone = document.getElementById('dropzone');
+const inputArchivo = document.getElementById('inputArchivo');
+
+dropzone.addEventListener('click', ()=> inputArchivo.click());
+inputArchivo.addEventListener('change', e=>{
+  if(e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+['dragenter','dragover'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.add('dragover'); });
+});
+['dragleave','drop'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.remove('dragover'); });
+});
+dropzone.addEventListener('drop', e=>{
+  const file = e.dataTransfer.files[0];
+  if(file) procesarArchivo(file);
+});
+document.getElementById('btnCambiarArchivo').addEventListener('click', ()=>{
+  document.getElementById('zonaCarga').classList.remove('d-none');
+  inputArchivo.click();
+});
+
+function procesarArchivo(file){
+  // Si la librería SheetJS todavía no terminó de cargar (red lenta), se espera
+  // un instante y se reintenta antes de declarar el error definitivamente.
+  if(typeof XLSX === 'undefined'){
+    if(window.__xlsxCargaFallida){
+      alert('No se pudo cargar la librería para leer Excel (XLSX). Verificá tu conexión a internet o que tu red no esté bloqueando los CDN, y volvé a intentar.');
+      return;
+    }
+    setTimeout(()=> procesarArchivo(file), 400);
+    return;
+  }
+
+  const lector = new FileReader();
+  lector.onload = (ev)=>{
+    try{
+      const libro = XLSX.read(ev.target.result, {type:'array'});
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+
+      // Se lee primero como matriz (header:1) y se deduplican los encabezados
+      // repetidos (ej: "UM", "UM", "Un", "Un"...) para que ninguna columna se
+      // pise por tener el mismo nombre que otra.
+      const filasMatriz = XLSX.utils.sheet_to_json(hoja, {header:1, defval:''});
+      if(filasMatriz.length < 2){
+        alert('El archivo no contiene filas de datos.');
+        return;
+      }
+      const contador = {};
+      const headers = filasMatriz[0].map(h=>{
+        const base = String(h ?? '').trim() || 'Columna';
+        contador[base] = (contador[base]||0) + 1;
+        return contador[base] === 1 ? base : `${base} (${contador[base]})`;
+      });
+      const filas = filasMatriz.slice(1).map(fila=>{
+        const obj = {};
+        headers.forEach((h,i)=> obj[h] = fila[i] ?? '');
+        return obj;
+      });
+      if(!filas.length){
+        alert('El archivo no contiene filas de datos.');
+        return;
+      }
+      datosOriginales = filas;
+      columnasHoja = Object.keys(filas[0]);
+      columnasMapeadas = mapearColumnas(columnasHoja);
+
+      document.getElementById('archivoInfo').classList.remove('d-none');
+      document.getElementById('nombreArchivo').textContent = `${file.name} (${filas.length} filas)`;
+      document.getElementById('zonaCarga').classList.add('d-none');
+      document.getElementById('btnCambiarArchivo').classList.remove('d-none');
+      document.getElementById('estadoVacio').classList.add('d-none');
+      document.getElementById('dashboardContent').classList.remove('d-none');
+
+      inicializarFiltros();
+      inicializarTabla();
+    }catch(err){
+      console.error(err);
+      alert('No se pudo leer el archivo. Verificá que sea un Excel válido (.xlsx/.xls).');
+    }
+  };
+  lector.readAsArrayBuffer(file);
+}
+
+/* =============================================================================
+   5. INICIALIZACIÓN DE LA TABLA (DataTables)
+   ============================================================================= */
+function inicializarTabla(){
+  if(tablaDT){ tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML=''; }
+
+  // Las columnas mostradas son todas las del Excel, priorizando los 5 campos
+  // de negocio principales al inicio (cuando se logran detectar).
+  const prioridad = ['cliente','pedido','oc','modelo','cantidad']
+    .map(c=>columnasMapeadas[c]).filter(Boolean);
+  const resto = columnasHoja.filter(h=> !prioridad.includes(h));
+  const ordenColumnas = [...prioridad, ...resto];
+
+  const columnasDT = ordenColumnas.map(h=>{
+    const esCantidad = (h === columnasMapeadas.cantidad);
+    return {
+      data: h,
+      title: h,
+      className: esCantidad ? 'text-end' : '',
+      render: esCantidad ? (d)=> formatoNumero(d) : null
+    };
+  });
+
+  tablaDT = $('#tablaPedidos').DataTable({
+    data: datosOriginales,
+    columns: columnasDT,
+    destroy: true,
+    scrollX: true,
+    scrollY: '48vh',
+    scrollCollapse: true,
+    deferRender: true,
+    dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rt<"d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"ip>',
+    pageLength: 25,
+    lengthMenu: [10,25,50,100],
+    language: {
+      decimal: ",",
+      thousands: ".",
+      emptyTable: "No hay datos disponibles",
+      info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+      lengthMenu: "Mostrar _MENU_ registros",
+      search: "Buscar:",
+      paginate: {first:"Primero",last:"Último",next:"Siguiente",previous:"Anterior"}
+    }
+  });
+
+  // Recalcular KPIs y gráficos cada vez que la tabla se redibuja (por filtros,
+  // búsqueda u ordenamiento), para que el dashboard refleje siempre lo visible.
+  tablaDT.on('draw', actualizarDashboard);
+  actualizarDashboard();
+}
+
+/* =============================================================================
+   6. FILTROS (selects independientes + búsqueda global + limpiar)
+   ============================================================================= */
+function valoresUnicos(campo){
+  const col = columnasMapeadas[campo];
+  if(!col) return [];
+  return [...new Set(datosOriginales.map(r=> String(r[col]).trim()).filter(v=>v!==''))]
+    .sort((a,b)=> a.localeCompare(b,'es',{numeric:true}));
+}
+
+function llenarSelect(id, valores){
+  const select = document.getElementById(id);
+  const actual = select.value;
+  select.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());
+  valores.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    select.appendChild(opt);
+  });
+  if(valores.includes(actual)) select.value = actual;
+}
+
+function inicializarFiltros(){
+  llenarSelect('filtroCliente', valoresUnicos('cliente'));
+  llenarSelect('filtroPedido',  valoresUnicos('pedido'));
+  llenarSelect('filtroOC',      valoresUnicos('oc'));
+  llenarSelect('filtroModelo',  valoresUnicos('modelo'));
+
+  document.getElementById('filtroCliente').onchange = ()=> aplicarFiltroColumna('cliente', 'filtroCliente');
+  document.getElementById('filtroPedido').onchange  = ()=> aplicarFiltroColumna('pedido', 'filtroPedido');
+  document.getElementById('filtroOC').onchange      = ()=> aplicarFiltroColumna('oc', 'filtroOC');
+  document.getElementById('filtroModelo').onchange  = ()=> aplicarFiltroColumna('modelo', 'filtroModelo');
+
+  document.getElementById('buscarGlobal').oninput = (e)=>{
+    if(tablaDT) tablaDT.search(e.target.value).draw();
+  };
+
+  document.getElementById('btnLimpiarFiltros').onclick = limpiarFiltros;
+}
+
+function aplicarFiltroColumna(campo, idSelect){
+  const col = columnasMapeadas[campo];
+  if(!col || !tablaDT) return;
+  const valor = document.getElementById(idSelect).value;
+  const idx = tablaDT.column(`${col}:name`)?.index() ?? buscarIndiceColumna(col);
+  // Escapa caracteres especiales de regex para hacer una búsqueda exacta de columna
+  const escapado = valor.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  tablaDT.column(idx).search(valor ? `^${escapado}$` : '', true, false).draw();
+}
+function buscarIndiceColumna(headerName){
+  let idx = -1;
+  tablaDT.settings()[0].aoColumns.forEach((c,i)=>{ if(c.data === headerName) idx = i; });
+  return idx;
+}
+
+function limpiarFiltros(){
+  ['filtroCliente','filtroPedido','filtroOC','filtroModelo'].forEach(id=> document.getElementById(id).value='');
+  document.getElementById('buscarGlobal').value = '';
+  if(tablaDT){
+    tablaDT.columns().search('');
+    tablaDT.search('').draw();
+  }
+}
+
+/* =============================================================================
+   7. CÁLCULO DE KPIs Y 8. ACTUALIZACIÓN DE GRÁFICOS
+   Trabajan siempre sobre las filas actualmente visibles en la tabla (es decir,
+   respetando los filtros y la búsqueda aplicados), para un panel verdaderamente
+   interactivo tipo BI.
+   ============================================================================= */
+function actualizarDashboard(){
+  const filas = tablaDT.rows({search:'applied'}).data().toArray();
+  actualizarKPIs(filas);
+  actualizarGraficos(filas);
+}
+
+function actualizarKPIs(filas){
+  const cCliente = columnasMapeadas.cliente, cPedido = columnasMapeadas.pedido,
         cModelo = columnasMapeadas.modelo, cCantidad = columnasMapeadas.cantidad;
 
-      const totalPedidos = cPedido ? new Set(filas.map(f => f[cPedido])).size : filas.length;
-      const totalPares = cCantidad ? filas.reduce((s, f) => s + (parseFloat(f[cCantidad]) || 0), 0) : 0;
-      const totalClientes = cCliente ? new Set(filas.map(f => f[cCliente]).filter(v => v !== '')).size : 0;
-      const totalModelos = cModelo ? new Set(filas.map(f => f[cModelo]).filter(v => v !== '')).size : 0;
+  const totalPedidos = cPedido ? new Set(filas.map(f=>f[cPedido])).size : filas.length;
+  const totalPares = cCantidad ? filas.reduce((s,f)=> s + (parseFloat(f[cCantidad]) || 0), 0) : 0;
+  const totalClientes = cCliente ? new Set(filas.map(f=>f[cCliente]).filter(v=>v!=='')).size : 0;
+  const totalModelos = cModelo ? new Set(filas.map(f=>f[cModelo]).filter(v=>v!=='')).size : 0;
 
-      document.getElementById('kpiPedidos').textContent = formatoNumero(totalPedidos);
-      document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
-      document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
-      document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
-    }
+  document.getElementById('kpiPedidos').textContent = formatoNumero(totalPedidos);
+  document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
+  document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
+  document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
+}
 
-    function agruparSuma(filas, campoGrupo, campoValor) {
-      const mapa = new Map();
-      filas.forEach(f => {
-        const clave = String(f[campoGrupo] ?? 'Sin dato').trim() || 'Sin dato';
-        const valor = parseFloat(f[campoValor]) || 0;
-        mapa.set(clave, (mapa.get(clave) || 0) + valor);
-      });
-      return mapa;
-    }
-    function agruparConteo(filas, campoGrupo) {
-      const mapa = new Map();
-      filas.forEach(f => {
-        const clave = String(f[campoGrupo] ?? 'Sin dato').trim() || 'Sin dato';
-        mapa.set(clave, (mapa.get(clave) || 0) + 1);
-      });
-      return mapa;
-    }
-    function topN(mapa, n) {
-      return [...mapa.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
-    }
+function agruparSuma(filas, campoGrupo, campoValor){
+  const mapa = new Map();
+  filas.forEach(f=>{
+    const clave = String(f[campoGrupo] ?? 'Sin dato').trim() || 'Sin dato';
+    const valor = parseFloat(f[campoValor]) || 0;
+    mapa.set(clave, (mapa.get(clave)||0) + valor);
+  });
+  return mapa;
+}
+function agruparConteo(filas, campoGrupo){
+  const mapa = new Map();
+  filas.forEach(f=>{
+    const clave = String(f[campoGrupo] ?? 'Sin dato').trim() || 'Sin dato';
+    mapa.set(clave, (mapa.get(clave)||0) + 1);
+  });
+  return mapa;
+}
+function topN(mapa, n){
+  return [...mapa.entries()].sort((a,b)=> b[1]-a[1]).slice(0,n);
+}
 
-    function actualizarGraficos(filas) {
-      const cCliente = columnasMapeadas.cliente, cModelo = columnasMapeadas.modelo, cCantidad = columnasMapeadas.cantidad;
-      const textoColor = colorTexto();
-      Chart.defaults.color = textoColor;
-      Chart.defaults.borderColor = colorBorde();
+function actualizarGraficos(filas){
+  const cCliente = columnasMapeadas.cliente, cModelo = columnasMapeadas.modelo, cCantidad = columnasMapeadas.cantidad;
+  const textoColor = colorTexto();
+  Chart.defaults.color = textoColor;
+  Chart.defaults.borderColor = colorBorde();
 
-      // --- Gráfico 1: Top 10 clientes por cantidad (barras horizontales) ---
-      if (cCliente && cCantidad) {
-        const top = topN(agruparSuma(filas, cCliente, cCantidad), 10);
-        if (chartClientes) chartClientes.destroy();
-        chartClientes = new Chart(document.getElementById('chartTopClientes'), {
-          type: 'bar',
-          data: {
-            labels: top.map(t => t[0]),
-            datasets: [{ label: 'Cantidad', data: top.map(t => t[1]), backgroundColor: '#5B5FC7', borderRadius: 4 }]
-          },
-          options: {
-            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true } }
-          }
-        });
+  // --- Gráfico 1: Top 10 clientes por cantidad (barras horizontales) ---
+  if(cCliente && cCantidad){
+    const top = topN(agruparSuma(filas, cCliente, cCantidad), 10);
+    if(chartClientes) chartClientes.destroy();
+    chartClientes = new Chart(document.getElementById('chartTopClientes'), {
+      type:'bar',
+      data:{
+        labels: top.map(t=>t[0]),
+        datasets:[{ label:'Cantidad', data: top.map(t=>t[1]), backgroundColor:'#5B5FC7', borderRadius:4 }]
+      },
+      options:{
+        indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ x:{ beginAtZero:true } }
       }
+    });
+  }
 
-      // --- Gráfico 2: Top 10 modelos más pedidos (cantidad de líneas de pedido) ---
-      if (cModelo) {
-        const top = topN(agruparConteo(filas, cModelo), 10);
-        if (chartModelos) chartModelos.destroy();
-        chartModelos = new Chart(document.getElementById('chartTopModelos'), {
-          type: 'bar',
-          data: {
-            labels: top.map(t => t[0]),
-            datasets: [{ label: 'Cantidad de pedidos', data: top.map(t => t[1]), backgroundColor: '#00B7C3', borderRadius: 4 }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true, ticks: { precision: 0 } }, x: { ticks: { autoSkip: true, maxRotation: 40, minRotation: 0 } } }
-          }
-        });
+  // --- Gráfico 2: Top 10 modelos más pedidos (cantidad de líneas de pedido) ---
+  if(cModelo){
+    const top = topN(agruparConteo(filas, cModelo), 10);
+    if(chartModelos) chartModelos.destroy();
+    chartModelos = new Chart(document.getElementById('chartTopModelos'), {
+      type:'bar',
+      data:{
+        labels: top.map(t=>t[0]),
+        datasets:[{ label:'Cantidad de pedidos', data: top.map(t=>t[1]), backgroundColor:'#00B7C3', borderRadius:4 }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{display:false} },
+        scales:{ y:{ beginAtZero:true, ticks:{precision:0} }, x:{ ticks:{ autoSkip:true, maxRotation:40, minRotation:0 } } }
       }
+    });
+  }
 
-      // --- Gráfico 3: Distribución de cantidad por cliente (doughnut, top 8 + Otros) ---
-      if (cCliente && cCantidad) {
-        const mapa = agruparSuma(filas, cCliente, cCantidad);
-        const ordenado = [...mapa.entries()].sort((a, b) => b[1] - a[1]);
-        const top8 = ordenado.slice(0, 8);
-        const restoSuma = ordenado.slice(8).reduce((s, e) => s + e[1], 0);
-        const labels = top8.map(t => t[0]);
-        const valores = top8.map(t => t[1]);
-        if (restoSuma > 0) { labels.push('Otros'); valores.push(restoSuma); }
+  // --- Gráfico 3: Distribución de cantidad por cliente (doughnut, top 8 + Otros) ---
+  if(cCliente && cCantidad){
+    const mapa = agruparSuma(filas, cCliente, cCantidad);
+    const ordenado = [...mapa.entries()].sort((a,b)=> b[1]-a[1]);
+    const top8 = ordenado.slice(0,8);
+    const restoSuma = ordenado.slice(8).reduce((s,e)=> s+e[1], 0);
+    const labels = top8.map(t=>t[0]);
+    const valores = top8.map(t=>t[1]);
+    if(restoSuma > 0){ labels.push('Otros'); valores.push(restoSuma); }
 
-        if (chartDistribucion) chartDistribucion.destroy();
-        chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
-          type: 'doughnut',
-          data: { labels, datasets: [{ data: valores, backgroundColor: PALETA, borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--surface') }] },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
-          }
-        });
+    if(chartDistribucion) chartDistribucion.destroy();
+    chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
+      type:'doughnut',
+      data:{ labels, datasets:[{ data: valores, backgroundColor: PALETA, borderWidth:2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--surface') }] },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{size:10} } } }
       }
-    }
-
-    /* =============================================================================
-       9. EXPORTACIÓN (Excel / CSV / PDF)
-       Siempre exportan exactamente lo que el usuario está viendo: filas filtradas
-       y/o buscadas en la tabla, en el orden actual de columnas.
-       ============================================================================= */
-    function obtenerColumnasVisibles() {
-      return tablaDT.settings()[0].aoColumns.map(c => c.data);
-    }
-    function obtenerFilasFiltradas() {
-      return tablaDT.rows({ search: 'applied' }).data().toArray();
-    }
-
-    document.getElementById('btnExportExcel').addEventListener('click', () => {
-      const cols = obtenerColumnasVisibles();
-      const filas = obtenerFilasFiltradas().map(f => {
-        const obj = {}; cols.forEach(c => obj[c] = f[c]); return obj;
-      });
-      const hoja = XLSX.utils.json_to_sheet(filas, { header: cols });
-      const libro = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(libro, hoja, 'Pedidos');
-      XLSX.writeFile(libro, 'pedidos_filtrados.xlsx');
     });
+  }
+}
 
-    document.getElementById('btnExportCSV').addEventListener('click', () => {
-      const cols = obtenerColumnasVisibles();
-      const filas = obtenerFilasFiltradas().map(f => {
-        const obj = {}; cols.forEach(c => obj[c] = f[c]); return obj;
-      });
-      const hoja = XLSX.utils.json_to_sheet(filas, { header: cols });
-      const csv = XLSX.utils.sheet_to_csv(hoja);
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'pedidos_filtrados.csv';
-      a.click();
-    });
+/* =============================================================================
+   9. EXPORTACIÓN (Excel / CSV / PDF)
+   Siempre exportan exactamente lo que el usuario está viendo: filas filtradas
+   y/o buscadas en la tabla, en el orden actual de columnas.
+   ============================================================================= */
+function obtenerColumnasVisibles(){
+  return tablaDT.settings()[0].aoColumns.map(c=>c.data);
+}
+function obtenerFilasFiltradas(){
+  return tablaDT.rows({search:'applied'}).data().toArray();
+}
 
-    document.getElementById('btnExportPDF').addEventListener('click', () => {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt' });
-      const cols = obtenerColumnasVisibles();
-      const filas = obtenerFilasFiltradas().map(f => cols.map(c => String(f[c] ?? '')));
+document.getElementById('btnExportExcel').addEventListener('click', ()=>{
+  const cols = obtenerColumnasVisibles();
+  const filas = obtenerFilasFiltradas().map(f=>{
+    const obj = {}; cols.forEach(c=> obj[c] = f[c]); return obj;
+  });
+  const hoja = XLSX.utils.json_to_sheet(filas, {header:cols});
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Pedidos');
+  XLSX.writeFile(libro, 'pedidos_filtrados.xlsx');
+});
 
-      doc.setFontSize(13);
-      doc.text('Panel de Pedidos de Producción', 30, 28);
-      doc.setFontSize(9);
-      doc.text(`Generado el ${new Date().toLocaleString('es-AR')} — ${filas.length} filas`, 30, 42);
+document.getElementById('btnExportCSV').addEventListener('click', ()=>{
+  const cols = obtenerColumnasVisibles();
+  const filas = obtenerFilasFiltradas().map(f=>{
+    const obj = {}; cols.forEach(c=> obj[c] = f[c]); return obj;
+  });
+  const hoja = XLSX.utils.json_to_sheet(filas, {header:cols});
+  const csv = XLSX.utils.sheet_to_csv(hoja);
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pedidos_filtrados.csv';
+  a.click();
+});
 
-      doc.autoTable({
-        head: [cols],
-        body: filas,
-        startY: 55,
-        styles: { fontSize: 7, cellPadding: 3 },
-        headStyles: { fillColor: [91, 95, 199], textColor: 255 },
-        alternateRowStyles: { fillColor: [245, 245, 247] }
-      });
-      doc.save('pedidos_filtrados.pdf');
-    });
+document.getElementById('btnExportPDF').addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt'});
+  const cols = obtenerColumnasVisibles();
+  const filas = obtenerFilasFiltradas().map(f=> cols.map(c=> String(f[c] ?? '')));
 
-    /* =============================================================================
-       10. MODO OSCURO / MODO CLARO
-       ============================================================================= */
-    document.getElementById('btnTema').addEventListener('click', () => {
-      const html = document.documentElement;
-      const esOscuro = html.getAttribute('data-theme') === 'dark';
-      html.setAttribute('data-theme', esOscuro ? 'light' : 'dark');
-      document.getElementById('btnTema').innerHTML = esOscuro
-        ? '<i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>'
-        : '<i class="bi bi-sun-fill"></i> <span class="d-none d-md-inline">Modo claro</span>';
-      // Si ya hay gráficos cargados, se redibujan para tomar los nuevos colores de tema
-      if (tablaDT) actualizarGraficos(tablaDT.rows({ search: 'applied' }).data().toArray());
-    });
-  </script>
+  doc.setFontSize(13);
+  doc.text('Panel de Pedidos de Producción', 30, 28);
+  doc.setFontSize(9);
+  doc.text(`Generado el ${new Date().toLocaleString('es-AR')} — ${filas.length} filas`, 30, 42);
+
+  doc.autoTable({
+    head: [cols],
+    body: filas,
+    startY: 55,
+    styles: { fontSize: 7, cellPadding: 3 },
+    headStyles: { fillColor: [91,95,199], textColor: 255 },
+    alternateRowStyles: { fillColor: [245,245,247] }
+  });
+  doc.save('pedidos_filtrados.pdf');
+});
+
+/* =============================================================================
+   10. MODO OSCURO / MODO CLARO
+   ============================================================================= */
+document.getElementById('btnTema').addEventListener('click', ()=>{
+  const html = document.documentElement;
+  const esOscuro = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', esOscuro ? 'light' : 'dark');
+  document.getElementById('btnTema').innerHTML = esOscuro
+    ? '<i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>'
+    : '<i class="bi bi-sun-fill"></i> <span class="d-none d-md-inline">Modo claro</span>';
+  // Si ya hay gráficos cargados, se redibujan para tomar los nuevos colores de tema
+  if(tablaDT) actualizarGraficos(tablaDT.rows({search:'applied'}).data().toArray());
+});
+</script>
 </body>
-
 </html>
