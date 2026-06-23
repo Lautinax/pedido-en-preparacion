@@ -336,13 +336,13 @@ table.dataTable.hover tbody tr:hover td{
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// REESTRUCTURACIÓN DE COLUMNAS SOLICITADA POR EL USUARIO
+// MAPEADO FLEXIBLE PARA ADMITIR LAS CABECERAS EXACTAS DE TU EXCEL SAP
 const CONFIG_COLUMNAS = [
-  { excel: 'Solicitante', etiqueta: 'Cliente', numerico: false },
-  { excel: 'Referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
-  { excel: 'Número de material', etiqueta: 'Número de material', numerico: false },
-  { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
-  { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
+  { excelAlternatives: ['Solicitante', 'Solicit.'], etiqueta: 'Cliente', numerico: false },
+  { excelAlternatives: ['Referencia', 'Referencia cliente', 'Ped.clte.'], etiqueta: 'Referencia cliente', numerico: false },
+  { excelAlternatives: ['Número de material', 'Material'], etiqueta: 'Número de material', numerico: false },
+  { excelAlternatives: ['Cantidad entrega', 'Cantidad'], etiqueta: 'Cantidad entrega', numerico: true },
+  { excelAlternatives: ['Flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
 ];
 
 const PALETA = ['#5B5FC7','#00B7C3','#0078D4','#8764B8','#107C10','#C19C00','#D13438','#605E5C','#FF8C00','#038387'];
@@ -401,7 +401,13 @@ function procesarArchivo(file){
       const filasProcesadas = filasMatriz.slice(1).map(filaMatriz => {
         const filaObj = {};
         CONFIG_COLUMNAS.forEach(col => {
-          const index = headersExcel.indexOf(col.excel);
+          // Busca coincidencia con cualquiera de las alternativas de cabecera de SAP
+          let index = -1;
+          for(let alt of col.excelAlternatives) {
+            index = headersExcel.indexOf(alt);
+            if(index !== -1) break;
+          }
+          
           let valor = index !== -1 ? filaMatriz[index] : '';
           if(col.numerico) {
             valor = parseFloat(valor) || 0;
@@ -431,7 +437,6 @@ function procesarArchivo(file){
 }
 
 function inicializarTabla(){
-  // Corrección limpia de DataTables para evitar bugs al recargar archivos
   if(tablaDT){ 
     tablaDT.destroy(); 
     tablaDT = null;
@@ -441,7 +446,6 @@ function inicializarTabla(){
   document.querySelector('#tablaPedidos tbody').innerHTML = '';
   document.querySelector('#tablaPedidos tfoot').innerHTML = '';
 
-  // Inicializar tfoot estructural
   const tfoot = document.querySelector('#tablaPedidos tfoot');
   let tfootHtml = '<tr>';
   CONFIG_COLUMNAS.forEach(col => {
@@ -624,7 +628,7 @@ document.getElementById('btnExportCSV').addEventListener('click', ()=>{
   a.click();
 });
 
-// EXPORTACIÓN A PDF HORIZONTAL CON TOTAL DE PARES INCORPORADO
+// EXPORTACIÓN A PDF HORIZONTAL TOTALMENTE CONFIGURADO
 document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
@@ -643,7 +647,6 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     });
   });
 
-  // Fila del Pie Obligatoria para jsPDF-AutoTable como matriz doble
   const filaTotales = [
     CONFIG_COLUMNAS.map(col => {
       if(col.etiqueta === 'Cliente') return 'TOTAL';
@@ -673,8 +676,8 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     startY: 75,
     margin: { left: 40, right: 40 },
     styles: { 
-      fontSize: 8.5, 
-      cellPadding: 6,
+      fontSize: 8, 
+      cellPadding: 5,
       overflow: 'linebreak',
       valign: 'middle',
       textColor: [40, 40, 40],
@@ -684,25 +687,25 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
       fillColor: [91, 95, 199], 
       textColor: 255,
       fontStyle: 'bold',
-      fontSize: 9,
+      fontSize: 8.5,
       halign: 'center'
     },
     footStyles: {
       fillColor: [230, 230, 235],
       textColor: [32, 31, 30],
       fontStyle: 'bold',
-      fontSize: 9,
+      fontSize: 8.5,
       halign: 'center'
     },
     alternateRowStyles: { 
       fillColor: [248, 249, 250] 
     },
     columnStyles: {
-      0: { cellWidth: 180 },  // Cliente
-      1: { cellWidth: 130 },  // Referencia cliente
+      0: { cellWidth: 150 },  // Cliente
+      1: { cellWidth: 140 },  // Referencia cliente (Muestra el pedido / nro de referencia)
       2: { cellWidth: 120 },  // Número de material
       3: { cellWidth: 90, halign: 'center' },  // Cantidad entrega
-      4: { cellWidth: 'auto' } // Flete
+      4: { cellWidth: 'auto' } // Flete a cargo de
     }
   });
 
@@ -721,3 +724,4 @@ document.getElementById('btnTema').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
+
