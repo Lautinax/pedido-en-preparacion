@@ -410,7 +410,7 @@
         numerico: true
       },
       {
-        excelAlternatives: ['referencia cliente', 'ped.clte.'],
+        excelAlternatives: ['referencia cliente', 'ped.clte.', 'referencia'],
         etiqueta: 'Referencia cliente',
         numerico: false
       },
@@ -445,40 +445,41 @@
 
           const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim().toLowerCase());
 
-          datosOriginales = filasMatriz.slice(1).map(filaMatriz => {
-            const filaObj = {};
+          datosOriginales = filasMatriz.slice(1)
+            .filter(fila => {
+              const textoFila = fila.join('').toLowerCase();
+              if (!textoFila || textoFila.includes('total general') || textoFila.includes('total de la fc')) return false;
+              return true;
+            })
+            .map(filaMatriz => {
+              const filaObj = {};
 
-            CONFIG_COLUMNAS.forEach(col => {
-              let index = headersExcel.findIndex(header =>
-                col.excelAlternatives.some(alt =>
-                  header.includes(alt.toLowerCase())
-                )
-              );
+              CONFIG_COLUMNAS.forEach(col => {
+                let index = headersExcel.findIndex(header =>
+                  col.excelAlternatives.some(alt => header === alt.toLowerCase() || header.includes(alt.toLowerCase()))
+                );
 
-              if (index === -1 && col.etiqueta === 'Entrega') {
-                index = headersExcel.findIndex(h => h.includes('entrega'));
-              }
+                if (index === -1 && col.etiqueta === 'Entrega') {
+                  index = headersExcel.findIndex(h => h.includes('entrega'));
+                }
+                if (index === -1 && col.etiqueta === 'Flete a cargo de:') {
+                  index = headersExcel.findIndex(h => h.includes('flete'));
+                }
+                if (index === -1 && col.etiqueta === 'Referencia cliente') {
+                  index = headersExcel.findIndex(h => h.includes('referencia') || h.includes('ped.clte'));
+                }
 
-              if (index === -1 && col.etiqueta === 'Flete a cargo de:') {
-                index = headersExcel.findIndex(h => h.includes('flete'));
-              }
+                let valor = index !== -1 ? filaMatriz[index] : '';
 
-              let valor = index !== -1 ? filaMatriz[index] : '';
-
-              if (col.etiqueta === 'Entrega') {
-                filaObj[col.etiqueta] =
-                  valor === '' || valor == null
-                    ? ''
-                    : Math.trunc(Number(valor)).toString();
-              }
-              else {
-                filaObj[col.etiqueta] = col.numerico
-                  ? (parseFloat(valor) || 0)
-                  : String(valor ?? '').trim();
-              }
-            });
-            return filaObj;
-          });
+                if (col.etiqueta === 'Entrega') {
+                  filaObj[col.etiqueta] = (valor === '' || valor == null) ? '' : Math.trunc(Number(valor)).toString();
+                } else {
+                  filaObj[col.etiqueta] = col.numerico ? (parseFloat(valor) || 0) : String(valor ?? '').trim();
+                }
+              });
+              return filaObj;
+            })
+            .filter(f => f['Entrega'] !== '' || f['Solicitante'] !== '');
 
           document.getElementById('archivoInfo').classList.remove('d-none');
           document.getElementById('nombreArchivo').textContent = `${file.name} (${datosOriginales.length} filas)`;
@@ -505,7 +506,6 @@
 
       CONFIG_COLUMNAS.forEach(col => {
         headHtml += `<th>${col.etiqueta}</th>`;
-
         if (col.etiqueta === 'Entrega') {
           footHtml += `<th>TOTAL GENERAL</th>`;
         } else if (col.etiqueta === 'Cantidad entrega') {
@@ -684,10 +684,10 @@
         },
         columnStyles: {
           0: { cellWidth: 70 },   // Entrega
-          1: { cellWidth: 140 },  // Solicitante
-          2: { cellWidth: 120 },  // Número de material
+          1: { cellWidth: 100 },  // Solicitante
+          2: { cellWidth: 100 },  // Número de material
           3: { cellWidth: 70 },   // Cantidad entrega
-          4: { cellWidth: 130 },  // Referencia cliente
+          4: { cellWidth: 120 },  // Referencia cliente
           5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
