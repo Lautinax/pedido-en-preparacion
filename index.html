@@ -379,38 +379,14 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Configuración con las equivalencias exactas según el orden solicitado
+    // Las 6 columnas requeridas con sus nombres normalizados estrictos según fotos del monitor
     const CONFIG_COLUMNAS = [
-      {
-        excelAlternatives: ['entrega', 'nº entrega', 'n° entrega', 'nro entrega', 'numero entrega'],
-        etiqueta: 'Entrega',
-        numerico: false
-      },
-      {
-        excelAlternatives: ['solicitante', 'solicit.'],
-        etiqueta: 'Solicitante',
-        numerico: false
-      },
-      {
-        excelAlternatives: ['numero de material', 'número de material', 'material'],
-        etiqueta: 'Numero de material',
-        numerico: false
-      },
-      {
-        excelAlternatives: ['cantidad de entrega', 'cantidad entrega', 'cantidad'],
-        etiqueta: 'Cantidad de entrega',
-        numerico: true
-      },
-      {
-        excelAlternatives: ['referencia de cliente', 'referencia cliente', 'ped.clte.'],
-        etiqueta: 'referencia de cliente',
-        numerico: false
-      },
-      {
-        excelAlternatives: ['flete a cargo de:', 'flete a cargo de', 'flete'],
-        etiqueta: 'Flete a cargo de:',
-        numerico: false
-      }
+      { excelAlternatives: ['entrega'], etiqueta: 'Entrega', numerico: false },
+      { excelAlternatives: ['solicitante', 'solicit.'], etiqueta: 'Solicitante', numerico: false },
+      { excelAlternatives: ['numero de material', 'numero material'], etiqueta: 'Numero de material', numerico: false },
+      { excelAlternatives: ['cantidad de entrega', 'cantidad entrega'], etiqueta: 'Cantidad de entrega', numerico: true },
+      { excelAlternatives: ['referencia de cliente', 'referencia cliente', 'referencia'], etiqueta: 'referencia de cliente', numerico: false },
+      { excelAlternatives: ['flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
     ];
 
     let datosOriginales = [];
@@ -425,6 +401,10 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
+    function normalizarTexto(t) {
+      return String(t ?? '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-0]/g, " ");
+    }
+
     function procesarArchivo(file) {
       const lector = new FileReader();
       lector.onload = (ev) => {
@@ -433,15 +413,24 @@
           const hoja = libro.Sheets[libro.SheetNames[0]];
           const filasMatriz = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '' });
 
-          if (filasMatriz.length < 2) return alert('El archivo no contiene filas válidas.');
+          if (filasMatriz.length < 1) return alert('El archivo está vacío.');
 
-          // Limpiar encabezados quitando tildes y espacios extraños
-          const headersExcel = filasMatriz[0].map(h => 
-            String(h ?? '').trim().toLowerCase()
-              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          );
+          // Buscar de forma dinámica en qué fila están las cabeceras reales de SAP
+          let filaEncabezadoIdx = -1;
+          for (let i = 0; i < Math.min(filasMatriz.length, 10); i++) {
+            const filaNorm = filasMatriz[i].map(c => normalizarTexto(c));
+            if (filaNorm.includes('entrega') && (filaNorm.includes('solicitante') || filaNorm.includes('solicit'))) {
+              filaEncabezadoIdx = i;
+              break;
+            }
+          }
 
-          datosOriginales = filasMatriz.slice(1)
+          // Si no la detecta automáticamente, por defecto usa la fila 0
+          if (filaEncabezadoIdx === -1) filaEncabezadoIdx = 0;
+
+          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => normalizarTexto(h));
+
+          datosOriginales = filasMatriz.slice(filaEncabezadoIdx + 1)
             .filter(fila => {
               const textoFila = fila.join('').toLowerCase();
               if (!textoFila || textoFila.includes('total general') || textoFila.includes('total de la fc')) return false;
@@ -451,10 +440,9 @@
               const filaObj = {};
 
               CONFIG_COLUMNAS.forEach(col => {
-                // Buscar el índice normalizando también las alternativas de configuración
                 let index = headersExcel.findIndex(header =>
                   col.excelAlternatives.some(alt => {
-                    const altNorm = alt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const altNorm = normalizarTexto(alt);
                     return header === altNorm || header.includes(altNorm);
                   })
                 );
@@ -469,7 +457,8 @@
               });
               return filaObj;
             })
-            .filter(f => f['Entrega'] !== '' || f['Solicitante'] !== '');
+            // Descartar registros fantasmas o rotos
+            .filter(f => f['Entrega'] !== '' && f['Entrega'] !== '0' && f['Solicitante'] !== '');
 
           document.getElementById('archivoInfo').classList.remove('d-none');
           document.getElementById('nombreArchivo').textContent = `${file.name} (${datosOriginales.length} filas)`;
@@ -610,7 +599,7 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido'] || 0) + (f['Cantidad de entrega'] || 0)));
+      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad de entrega'] || 0)));
       if (chartDistribucion) chartDistribucion.destroy();
       chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
         type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#8764B8'] }] },
