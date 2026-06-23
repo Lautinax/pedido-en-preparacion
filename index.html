@@ -401,22 +401,9 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    // LÓGICA CORREGIDA: Funcionalidad del botón Cambiar Archivo
+    // SOLUCIÓN EFECTIVA: Reseteamos la pestaña completa para evitar la rotura del HTML provocada por destruir DataTables
     btnCambiarArchivo.addEventListener('click', () => {
-      inputArchivo.value = ''; // Limpiar el input file
-      datosOriginales = [];
-      
-      // Resetear visualización de paneles
-      document.getElementById('archivoInfo').classList.add('d-none');
-      document.getElementById('zonaCarga').classList.remove('d-none');
-      btnCambiarArchivo.classList.add('d-none');
-      document.getElementById('dashboardContent').classList.add('d-none');
-      document.getElementById('estadoVacio').classList.remove('d-none');
-      
-      if (tablaDT) {
-        tablaDT.clear().destroy();
-        tablaDT = null;
-      }
+      window.location.reload();
     });
 
     function procesarArchivo(file) {
