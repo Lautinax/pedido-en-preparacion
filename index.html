@@ -244,7 +244,7 @@ table.dataTable.hover tbody tr:hover td{
           <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
           <div>
             <div class="kpi-value" id="kpiClientes">0</div>
-            <div class="kpi-label">Solicitantes Únicos</div>
+            <div class="kpi-label">Clientes Únicos</div>
           </div>
         </div>
       </div>
@@ -269,13 +269,13 @@ table.dataTable.hover tbody tr:hover td{
           </div>
         </div>
         <div class="col-6 col-lg-2">
-          <select id="filtroSolicitante" class="form-select"><option value="">Solicitante (todos)</option></select>
+          <select id="filtroSolicitante" class="form-select"><option value="">Cliente (todos)</option></select>
         </div>
         <div class="col-6 col-lg-3">
           <select id="filtroMaterial" class="form-select"><option value="">Número de material (todos)</option></select>
         </div>
         <div class="col-6 col-lg-2">
-          <select id="filtroFlete" class="form-select"><option value="">Flete a cargo de (todos)</option></select>
+          <select id="filtroFlete" class="form-select"><option value="">Flete (todos)</option></select>
         </div>
         <div class="col-12 col-lg-2 text-end">
           <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100" title="Limpiar filtros">
@@ -294,7 +294,7 @@ table.dataTable.hover tbody tr:hover td{
     <div class="row g-3 mb-4">
       <div class="col-12 col-lg-4">
         <div class="card-panel chart-card">
-          <div class="fw-semibold mb-2">Top Solicitantes (Cantidad)</div>
+          <div class="fw-semibold mb-2">Top Clientes (Cantidad)</div>
           <div class="chart-wrap"><canvas id="chartTopClientes"></canvas></div>
         </div>
       </div>
@@ -336,10 +336,10 @@ table.dataTable.hover tbody tr:hover td{
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// Mapeo exacto
+// REESTRUCTURACIÓN DE COLUMNAS SOLICITADA POR EL USUARIO
 const CONFIG_COLUMNAS = [
-  { excel: 'Entrega', etiqueta: 'Entrega', numerico: false },
-  { excel: 'Solicitante', etiqueta: 'Solicitante', numerico: false },
+  { excel: 'Solicitante', etiqueta: 'Cliente', numerico: false },
+  { excel: 'Referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
   { excel: 'Número de material', etiqueta: 'Número de material', numerico: false },
   { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
   { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
@@ -431,24 +431,23 @@ function procesarArchivo(file){
 }
 
 function inicializarTabla(){
-  // CORRECCIÓN CLAVE DEL BUG: Si ya existe la tabla, se destruye de forma completa y limpia el HTML interno
+  // Corrección limpia de DataTables para evitar bugs al recargar archivos
   if(tablaDT){ 
     tablaDT.destroy(); 
     tablaDT = null;
   }
   
-  // Limpiamos los elementos por completo antes de volver a crearlos para que no se dupliquen ni rompan
   document.querySelector('#tablaPedidos thead').innerHTML = '';
   document.querySelector('#tablaPedidos tbody').innerHTML = '';
   document.querySelector('#tablaPedidos tfoot').innerHTML = '';
 
-  // Volvemos a armar la estructura limpia del tfoot
+  // Inicializar tfoot estructural
   const tfoot = document.querySelector('#tablaPedidos tfoot');
   let tfootHtml = '<tr>';
   CONFIG_COLUMNAS.forEach(col => {
     if(col.etiqueta === 'Cantidad entrega') {
       tfootHtml += `<th id="totalSumaCantidad">0</th>`;
-    } else if(col.etiqueta === 'Entrega') {
+    } else if(col.etiqueta === 'Cliente') {
       tfootHtml += `<th>TOTAL</th>`;
     } else {
       tfootHtml += `<th></th>`;
@@ -509,11 +508,11 @@ function llenarSelect(id, valores){
 }
 
 function inicializarFiltros(){
-  llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Solicitante'));
+  llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Cliente'));
   llenarSelect('filtroMaterial',    valoresUnicosPorEtiqueta('Número de material'));
   llenarSelect('filtroFlete',       valoresUnicosPorEtiqueta('Flete a cargo de:'));
 
-  document.getElementById('filtroSolicitante').onchange = ()=> aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
+  document.getElementById('filtroSolicitante').onchange = ()=> aplicarFiltroColumna('Cliente', 'filtroSolicitante');
   document.getElementById('filtroMaterial').onchange    = ()=> aplicarFiltroColumna('Número de material', 'filtroMaterial');
   document.getElementById('filtroFlete').onchange       = ()=> aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
 
@@ -549,7 +548,7 @@ function actualizarDashboard(){
 
   const totalFilas = filas.length;
   const totalPares = filas.reduce((s,f)=> s + (f['Cantidad entrega'] || 0), 0);
-  const totalClientes = new Set(filas.map(f=>f['Solicitante']).filter(v=>v!=='')).size;
+  const totalClientes = new Set(filas.map(f=>f['Cliente']).filter(v=>v!=='')).size;
   const totalModelos = new Set(filas.map(f=>f['Número de material']).filter(v=>v!=='')).size;
 
   document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
@@ -566,9 +565,9 @@ function actualizarDashboard(){
   Chart.defaults.color = textoColor;
   Chart.defaults.borderColor = colorBorde();
 
-  // 1. Solicitantes
+  // 1. Clientes
   const mapaS = new Map();
-  filas.forEach(f=> mapaS.set(f['Solicitante'], (mapaS.get(f['Solicitante'])||0) + (f['Cantidad entrega']||0)));
+  filas.forEach(f=> mapaS.set(f['Cliente'], (mapaS.get(f['Cliente'])||0) + (f['Cantidad entrega']||0)));
   const topS = [...mapaS.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
 
   if(chartClientes) chartClientes.destroy();
@@ -625,7 +624,7 @@ document.getElementById('btnExportCSV').addEventListener('click', ()=>{
   a.click();
 });
 
-// EXPORTACIÓN A PDF CON TOTALES GARANTIZADOS
+// EXPORTACIÓN A PDF HORIZONTAL CON TOTAL DE PARES INCORPORADO
 document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
@@ -644,10 +643,10 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     });
   });
 
-  // Matriz de matrices obligatoria para jsPDF-AutoTable
+  // Fila del Pie Obligatoria para jsPDF-AutoTable como matriz doble
   const filaTotales = [
     CONFIG_COLUMNAS.map(col => {
-      if(col.etiqueta === 'Entrega') return 'TOTAL';
+      if(col.etiqueta === 'Cliente') return 'TOTAL';
       if(col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaCantidadTotal);
       return '';
     })
@@ -699,11 +698,11 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
       fillColor: [248, 249, 250] 
     },
     columnStyles: {
-      0: { cellWidth: 70 },  
-      1: { cellWidth: 180 }, 
-      2: { cellWidth: 140 }, 
-      3: { cellWidth: 80, halign: 'center' }, 
-      4: { cellWidth: 'auto' } 
+      0: { cellWidth: 180 },  // Cliente
+      1: { cellWidth: 130 },  // Referencia cliente
+      2: { cellWidth: 120 },  // Número de material
+      3: { cellWidth: 90, halign: 'center' },  // Cantidad entrega
+      4: { cellWidth: 'auto' } // Flete
     }
   });
 
