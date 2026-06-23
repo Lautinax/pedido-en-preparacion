@@ -379,14 +379,14 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Configuración con búsquedas estrictas para evitar cruces con columnas abreviadas
+    // Estructura de configuración sugerida estricta
     const CONFIG_COLUMNAS = [
-      { exactKey: 'entrega', etiqueta: 'Entrega', numerico: false },
-      { exactKey: 'solicitante', etiqueta: 'Solicitante', numerico: false },
-      { exactKey: 'numero de material', etiqueta: 'Número de material', numerico: false },
-      { exactKey: 'cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
-      { exactKey: 'referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
-      { exactKey: 'flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
+      { excel: 'Entrega', etiqueta: 'Entrega', numerico: false },
+      { excel: 'Solicitante', etiqueta: 'Solicitante', numerico: false },
+      { excel: 'Número de material', etiqueta: 'Número de material', numerico: false },
+      { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
+      { excel: 'Referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
+      { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
     ];
 
     let datosOriginales = [];
@@ -401,13 +401,6 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    // Normaliza el texto quitando tildes y dejando espacios simples estrictos
-    function limpiarTextoEstricto(t) {
-      return String(t ?? '').trim().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/\s+/g, ' ');
-    }
-
     function procesarArchivo(file) {
       const lector = new FileReader();
       lector.onload = (ev) => {
@@ -418,12 +411,11 @@
 
           if (filasMatriz.length < 1) return alert('El archivo está vacío.');
 
-          // Buscar la fila exacta de los títulos de SAP
+          // Buscar en qué fila se encuentran las cabeceras reales
           let filaEncabezadoIdx = -1;
           for (let i = 0; i < Math.min(filasMatriz.length, 15); i++) {
-            const filaNorm = filasMatriz[i].map(c => limpiarTextoEstricto(c));
-            // Buscamos que tenga "entrega" y "solicitante" de forma exacta en la fila
-            if (filaNorm.includes('entrega') && filaNorm.includes('solicitante')) {
+            const fila = filasMatriz[i];
+            if (fila.indexOf('Entrega') !== -1 && fila.indexOf('Solicitante') !== -1) {
               filaEncabezadoIdx = i;
               break;
             }
@@ -431,35 +423,35 @@
 
           if (filaEncabezadoIdx === -1) filaEncabezadoIdx = 0;
 
-          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => limpiarTextoEstricto(h));
+          // Tu bloque unificado con coincidencia exacta usando .indexOf()
+          const encabezadosOriginales = filasMatriz[filaEncabezadoIdx];
 
-          datosOriginales = filasMatriz.slice(filaEncabezadoIdx + 1)
+          const indiceEntrega = encabezadosOriginales.indexOf('Entrega');
+          const indiceSolicitante = encabezadosOriginales.indexOf('Solicitante');
+          const indiceMaterial = encabezadosOriginales.indexOf('Número de material');
+          const indiceCantidad = encabezadosOriginales.indexOf('Cantidad entrega');
+          const indiceReferenciaCliente = encabezadosOriginales.indexOf('Referencia cliente');
+          const indiceFlete = encabezadosOriginales.indexOf('Flete a cargo de:');
+
+          datosOriginales = filasMatriz
+            .slice(filaEncabezadoIdx + 1)
             .filter(fila => {
-              const textoFila = fila.join('').toLowerCase();
-              if (!textoFila || textoFila.includes('total general') || textoFila.includes('total de la fc')) return false;
-              return true;
+              const texto = fila.join('').toLowerCase();
+              return (
+                texto &&
+                !texto.includes('total general') &&
+                !texto.includes('total de la fc')
+              );
             })
-            .map(filaMatriz => {
-              const filaObj = {};
-
-              CONFIG_COLUMNAS.forEach(col => {
-                const objetivo = limpiarTextoEstricto(col.exactKey);
-                
-                // Validación estricta: tiene que ser una igualdad exacta de la cabecera
-                let index = headersExcel.findIndex(header => header === objetivo);
-
-                let valor = index !== -1 ? filaMatriz[index] : '';
-
-                if (col.etiqueta === 'Entrega') {
-                  filaObj[col.etiqueta] = (valor === '' || valor == null) ? '' : Math.trunc(Number(valor)).toString();
-                } else {
-                  filaObj[col.etiqueta] = col.numerico ? (parseFloat(valor) || 0) : String(valor ?? '').trim();
-                }
-              });
-              return filaObj;
-            })
-            // Descartar registros vacíos
-            .filter(f => f['Entrega'] !== '' && f['Entrega'] !== '0' && f['Solicitante'] !== '');
+            .map(fila => ({
+              'Entrega': fila[indiceEntrega] == null ? '' : String(fila[indiceEntrega]),
+              'Solicitante': String(fila[indiceSolicitante] ?? '').trim(),
+              'Número de material': String(fila[indiceMaterial] ?? '').trim(),
+              'Cantidad entrega': parseFloat(fila[indiceCantidad]) || 0,
+              'Referencia cliente': String(fila[indiceReferenciaCliente] ?? '').trim(),
+              'Flete a cargo de:': String(fila[indiceFlete] ?? '').trim()
+            }))
+            .filter(r => r['Entrega']);
 
           document.getElementById('archivoInfo').classList.remove('d-none');
           document.getElementById('nombreArchivo').textContent = `${file.name} (${datosOriginales.length} filas)`;
@@ -664,10 +656,10 @@
         },
         columnStyles: {
           0: { cellWidth: 70 },   // Entrega
-          1: { cellWidth: 130 },  // Solicitante (más ancho para nombres de empresa)
-          2: { cellWidth: 90 },   // Número de material
-          3: { cellWidth: 80 },   // Cantidad entrega
-          4: { cellWidth: 110 },  // Referencia cliente
+          1: { cellWidth: 140 },  // Solicitante
+          2: { cellWidth: 110 },  // Número de material
+          3: { cellWidth: 70 },   // Cantidad entrega
+          4: { cellWidth: 120 },  // Referencia cliente
           5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
