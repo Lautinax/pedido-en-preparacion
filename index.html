@@ -433,7 +433,7 @@ function procesarArchivo(file){
 function inicializarTabla(){
   if(tablaDT){ tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML=''; document.querySelector('#tablaPedidos tfoot').innerHTML=''; }
 
-  // Armamos la estructura del tfoot dinámicamente
+  // Estructura del tfoot
   const tfoot = document.querySelector('#tablaPedidos tfoot');
   let tfootHtml = '<tr>';
   CONFIG_COLUMNAS.forEach(col => {
@@ -548,7 +548,6 @@ function actualizarDashboard(){
   document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
   document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
 
-  // Colocar total sumado en el tfoot de la tabla
   const elementoTotalTabla = document.getElementById('totalSumaCantidad');
   if(elementoTotalTabla) {
     elementoTotalTabla.textContent = formatoNumero(totalPares);
@@ -617,7 +616,7 @@ document.getElementById('btnExportCSV').addEventListener('click', ()=>{
   a.click();
 });
 
-// EXPORTACIÓN A PDF CON FILA DE TOTALES INCLUIDA
+// EXPORTACIÓN A PDF CON TOTALES CORREGIDOS
 document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
@@ -636,12 +635,14 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     });
   });
 
-  // Generamos de forma explícita el pie de totales alineado
-  const filaTotales = CONFIG_COLUMNAS.map(col => {
-    if(col.etiqueta === 'Entrega') return 'TOTAL';
-    if(col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaCantidadTotal);
-    return '';
-  });
+  // Estructura de pie correcta: Matriz de matrices obligatoria para jsPDF-AutoTable
+  const filaTotales = [
+    CONFIG_COLUMNAS.map(col => {
+      if(col.etiqueta === 'Entrega') return 'TOTAL';
+      if(col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaCantidadTotal);
+      return '';
+    })
+  ];
 
   doc.setFontSize(16);
   doc.setFont("Helvetica", "bold");
@@ -660,7 +661,7 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   doc.autoTable({
     head: [cabeceras],
     body: filasDatos,
-    foot: [filaTotales], // <--- AÑADE LA FILA DE TOTALES ABAJO DEL PDF
+    foot: filaTotales, // <--- Pasado como matriz doble corregida [ [valores...] ]
     startY: 75,
     margin: { left: 40, right: 40 },
     styles: { 
