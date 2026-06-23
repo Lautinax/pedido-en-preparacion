@@ -1,796 +1,677 @@
 <!DOCTYPE html>
 <html lang="es" data-theme="light">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Entregas de Producción</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Entregas de Producción</title>
 
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
 
-  <style>
-    :root {
-      --bg: #F3F2F1;
-      --surface: #FFFFFF;
-      --surface-alt: #FAFAFA;
-      --text: #201F1E;
-      --text-muted: #605E5C;
-      --border: #E1DFDD;
-      --primary: #5B5FC7;
-      --primary-dark: #464775;
-      --accent: #00B7C3;
-      --success: #107C10;
-      --warning: #C19C00;
-      --danger: #D13438;
-      --shadow: 0 2px 10px rgba(31, 30, 29, 0.08);
-      --shadow-hover: 0 6px 18px rgba(31, 30, 29, 0.14);
-      --radius: 12px;
-    }
+<style>
+:root{
+  --bg:#F3F2F1;
+  --surface:#FFFFFF;
+  --surface-alt:#FAFAFA;
+  --text:#201F1E;
+  --text-muted:#605E5C;
+  --border:#E1DFDD;
+  --primary:#5B5FC7;
+  --primary-dark:#464775;
+  --accent:#00B7C3;
+  --success:#107C10;
+  --warning:#C19C00;
+  --danger:#D13438;
+  --shadow:0 2px 10px rgba(31,30,29,0.08);
+  --shadow-hover:0 6px 18px rgba(31,30,29,0.14);
+  --radius:12px;
+}
+html[data-theme="dark"]{
+  --bg:#1B1A19;
+  --surface:#252423;
+  --surface-alt:#2D2C2B;
+  --text:#F3F2F1;
+  --text-muted:#C8C6C4;
+  --border:#3B3A39;
+  --primary:#8B8FE0;
+  --primary-dark:#6A6FCB;
+  --accent:#34D6E0;
+  --shadow:0 2px 10px rgba(0,0,0,0.45);
+  --shadow-hover:0 6px 20px rgba(0,0,0,0.55);
+}
 
-    html[data-theme="dark"] {
-      --bg: #1B1A19;
-      --surface: #252423;
-      --surface-alt: #2D2C2B;
-      --text: #F3F2F1;
-      --text-muted: #C8C6C4;
-      --border: #3B3A39;
-      --primary: #8B8FE0;
-      --primary-dark: #6A6FCB;
-      --accent: #34D6E0;
-      --shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-      --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.55);
-    }
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Segoe UI",-apple-system,Roboto,Helvetica,Arial,sans-serif;
+  transition:background .25s ease,color .25s ease;
+}
 
-    * {
-      box-sizing: border-box;
-    }
+.topbar{
+  background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+  color:#fff;
+  box-shadow:var(--shadow);
+}
+.topbar .brand-icon{
+  width:40px;height:40px;border-radius:10px;
+  background:rgba(255,255,255,.18);
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;
+}
+.theme-switch{
+  cursor:pointer;border:1px solid rgba(255,255,255,.4);
+  background:rgba(255,255,255,.1);color:#fff;border-radius:30px;
+  padding:.35rem .9rem;font-size:.85rem;
+}
+.theme-switch:hover{background:rgba(255,255,255,.2);}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: "Segoe UI", -apple-system, Roboto, Helvetica, Arial, sans-serif;
-      transition: background .25s ease, color .25s ease;
-    }
+.card-panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  transition:box-shadow .2s ease;
+}
+.card-panel:hover{box-shadow:var(--shadow-hover);}
 
-    .topbar {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary));
-      color: #fff;
-      box-shadow: var(--shadow);
-    }
+.dropzone{
+  border:2px dashed var(--border);
+  border-radius:var(--radius);
+  background:var(--surface-alt);
+  padding:2.5rem 1rem;
+  text-align:center;
+  cursor:pointer;
+  transition:.2s ease;
+}
+.dropzone.dragover{
+  border-color:var(--primary);
+  background:rgba(91,95,199,.08);
+}
+.dropzone i{font-size:2.4rem;color:var(--primary);}
 
-    .topbar .brand-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, .18);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.3rem;
-    }
+.kpi-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:1.1rem 1.3rem;
+  display:flex;align-items:center;gap:1rem;
+  height:100%;
+}
+.kpi-icon{
+  width:52px;height:52px;border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:1.4rem;color:#fff;flex-shrink:0;
+}
+.kpi-value{font-size:1.6rem;font-weight:700;line-height:1.1;}
+.kpi-label{font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;}
 
-    .theme-switch {
-      cursor: pointer;
-      border: 1px solid rgba(255, 255, 255, .4);
-      background: rgba(255, 255, 255, .1);
-      color: #fff;
-      border-radius: 30px;
-      padding: .35rem .9rem;
-      font-size: .85rem;
-    }
+.section-title{
+  font-size:.95rem;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:.6rem;
+}
 
-    .theme-switch:hover {
-      background: rgba(255, 255, 255, .2);
-    }
+.filters-bar .form-select,
+.filters-bar .form-control{
+  background:var(--surface-alt);
+  border:1px solid var(--border);
+  color:var(--text);
+}
+.filters-bar .form-select:focus,
+.filters-bar .form-control:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 .2rem rgba(91,95,199,.15);
+}
 
-    .card-panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      transition: box-shadow .2s ease;
-    }
+.chart-card{padding:1.1rem 1.2rem;}
+.chart-wrap{position:relative;height:280px;}
 
-    .card-panel:hover {
-      box-shadow: var(--shadow-hover);
-    }
+#tabla-card{padding:1.2rem;}
+table.dataTable thead th{
+  background:var(--surface-alt);
+  color:var(--text);
+  border-bottom:2px solid var(--primary) !important;
+  position:sticky;top:0;
+}
+table.dataTable tbody td{
+  color:var(--text);
+  border-color:var(--border) !important;
+  background:var(--surface);
+}
+table.dataTable.stripe tbody tr.odd td,
+table.dataTable.hover tbody tr:hover td{
+  background:var(--surface-alt) !important;
+}
+.dataTables_wrapper .dataTables_paginate .paginate_button{color:var(--text) !important;}
+.dataTables_wrapper .dataTables_paginate .paginate_button.current{
+  background:var(--primary) !important;border-color:var(--primary) !important;color:#fff !important;
+}
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter{color:var(--text-muted) !important;}
+.dataTables_scrollHead{background:var(--surface-alt);}
 
-    .dropzone {
-      border: 2px dashed var(--border);
-      border-radius: var(--radius);
-      background: var(--surface-alt);
-      padding: 2.5rem 1rem;
-      text-align: center;
-      cursor: pointer;
-      transition: .2s ease;
-    }
+.btn-export{
+  border:1px solid var(--border);background:var(--surface-alt);color:var(--text);
+}
+.btn-export:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
 
-    .dropzone.dragover {
-      border-color: var(--primary);
-      background: rgba(91, 95, 199, .08);
-    }
+.empty-state{padding:4rem 1rem;text-align:center;color:var(--text-muted);}
+.empty-state i{font-size:3rem;color:var(--primary);opacity:.6;}
 
-    .dropzone i {
-      font-size: 2.4rem;
-      color: var(--primary);
-    }
-
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 1.1rem 1.3rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      height: 100%;
-    }
-
-    .kpi-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.4rem;
-      color: #fff;
-      flex-shrink: 0;
-    }
-
-    .kpi-value {
-      font-size: 1.6rem;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-
-    .kpi-label {
-      font-size: .78rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    .section-title {
-      font-size: .95rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin-bottom: .6rem;
-    }
-
-    .filters-bar .form-select,
-    .filters-bar .form-control {
-      background: var(--surface-alt);
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .filters-bar .form-select:focus,
-    .filters-bar .form-control:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 .2rem rgba(91, 95, 199, .15);
-    }
-
-    .chart-card {
-      padding: 1.1rem 1.2rem;
-    }
-
-    .chart-wrap {
-      position: relative;
-      height: 280px;
-    }
-
-    #tabla-card {
-      padding: 1.2rem;
-    }
-
-    table.dataTable thead th {
-      background: var(--surface-alt);
-      color: var(--text);
-      border-bottom: 2px solid var(--primary) !important;
-      position: sticky;
-      top: 0;
-    }
-
-    table.dataTable tbody td {
-      color: var(--text);
-      border-color: var(--border) !important;
-      background: var(--surface);
-    }
-
-    table.dataTable.stripe tbody tr.odd td,
-    table.dataTable.hover tbody tr:hover td {
-      background: var(--surface-alt) !important;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-      color: var(--text) !important;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-      background: var(--primary) !important;
-      border-color: var(--primary) !important;
-      color: #fff !important;
-    }
-
-    .dataTables_wrapper .dataTables_info,
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter {
-      color: var(--text-muted) !important;
-    }
-
-    .dataTables_scrollHead {
-      background: var(--surface-alt);
-    }
-
-    .btn-export {
-      border: 1px solid var(--border);
-      background: var(--surface-alt);
-      color: var(--text);
-    }
-
-    .btn-export:hover {
-      background: var(--primary);
-      color: #fff;
-      border-color: var(--primary);
-    }
-
-    .empty-state {
-      padding: 4rem 1rem;
-      text-align: center;
-      color: var(--text-muted);
-    }
-
-    .empty-state i {
-      font-size: 3rem;
-      color: var(--primary);
-      opacity: .6;
-    }
-
-    @media (max-width:768px) {
-      .kpi-value {
-        font-size: 1.3rem;
-      }
-
-      .chart-wrap {
-        height: 220px;
-      }
-    }
-  </style>
+@media (max-width:768px){
+  .kpi-value{font-size:1.3rem;}
+  .chart-wrap{height:220px;}
+}
+</style>
 </head>
-
 <body>
 
-  <nav class="topbar py-3 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
-    <div class="d-flex align-items-center gap-3">
-      <div class="brand-icon"><i class="bi bi-truck"></i></div>
-      <div>
-        <div class="fw-bold fs-5">Panel de Entregas y Distribución</div>
-        <div class="small opacity-75">Control y resumen logístico de preparación de materiales</div>
-      </div>
+<nav class="topbar py-3 px-3 px-md-4 d-flex align-items-center justify-content-between sticky-top">
+  <div class="d-flex align-items-center gap-3">
+    <div class="brand-icon"><i class="bi bi-truck"></i></div>
+    <div>
+      <div class="fw-bold fs-5">Panel de Entregas y Distribución</div>
+      <div class="small opacity-75">Control y resumen logístico de preparación de materiales</div>
     </div>
-    <div class="d-flex align-items-center gap-2">
-      <button id="btnCambiarArchivo" class="btn btn-sm btn-light d-none">
-        <i class="bi bi-upload"></i> <span class="d-none d-md-inline">Cambiar archivo</span>
-      </button>
-      <button id="btnTema" class="theme-switch">
-        <i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>
-      </button>
+  </div>
+  <div class="d-flex align-items-center gap-2">
+    <button id="btnCambiarArchivo" class="btn btn-sm btn-light d-none">
+      <i class="bi bi-upload"></i> <span class="d-none d-md-inline">Cambiar archivo</span>
+    </button>
+    <button id="btnTema" class="theme-switch">
+      <i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>
+    </button>
+  </div>
+</nav>
+
+<div class="container-fluid px-3 px-md-4 py-4">
+
+  <div id="zonaCarga" class="card-panel p-3 mb-4">
+    <div id="dropzone" class="dropzone">
+      <i class="bi bi-file-earmark-spreadsheet d-block mb-2"></i>
+      <div class="fw-semibold mb-1">Arrastra tu archivo EXPORT aquí o hace clic para seleccionarlo</div>
+      <div class="text-muted small">Admite formatos .xlsx, .xls y .csv</div>
+      <input type="file" id="inputArchivo" accept=".xlsx,.xls,.csv" class="d-none">
     </div>
-  </nav>
-
-  <div class="container-fluid px-3 px-md-4 py-4">
-
-    <div id="zonaCarga" class="card-panel p-3 mb-4">
-      <div id="dropzone" class="dropzone">
-        <i class="bi bi-file-earmark-spreadsheet d-block mb-2"></i>
-        <div class="fw-semibold mb-1">Arrastra tu archivo EXPORT aquí o hace clic para seleccionarlo</div>
-        <div class="text-muted small">Admite formatos .xlsx, .xls y .csv</div>
-        <input type="file" id="inputArchivo" accept=".xlsx,.xls,.csv" class="d-none">
-      </div>
-      <div id="archivoInfo" class="d-flex align-items-center gap-2 mt-2 small text-muted d-none">
-        <i class="bi bi-check-circle-fill text-success"></i>
-        <span id="nombreArchivo"></span>
-      </div>
-    </div>
-
-    <div id="estadoVacio" class="empty-state">
-      <i class="bi bi-clipboard-data d-block mb-2"></i>
-      <div class="fs-5 fw-semibold">Todavía no cargaste el archivo de entregas</div>
-      <div>Subí tu Excel para ver los cuadros resumidos filtrados y preparar tus PDFs.</div>
-    </div>
-
-    <div id="dashboardContent" class="d-none">
-
-      <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
-      <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-hash"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiPedidos">0</div>
-              <div class="kpi-label">Total de Filas</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiPares">0</div>
-              <div class="kpi-label">Cantidad Entrega Total</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiClientes">0</div>
-              <div class="kpi-label">Solicitantes Únicos</div>
-            </div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
-            <div>
-              <div class="kpi-value" id="kpiModelos">0</div>
-              <div class="kpi-label">Materiales Distintos</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-panel p-3 mb-4 filters-bar">
-        <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros de búsqueda rápida</div>
-        <div class="row g-2 align-items-center">
-          <div class="col-12 col-lg-3">
-            <div class="input-group">
-              <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
-              <input type="text" id="buscarGlobal" class="form-control border-start-0"
-                placeholder="Buscar en el cuadro...">
-            </div>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroSolicitante" class="form-select">
-              <option value="">Solicitante (todos)</option>
-            </select>
-          </div>
-          <div class="col-6 col-lg-3">
-            <select id="filtroMaterial" class="form-select">
-              <option value="">Número de Material (todos)</option>
-            </select>
-          </div>
-          <div class="col-6 col-lg-2">
-            <select id="filtroFlete" class="form-select">
-              <option value="">Flete a cargo de (todos)</option>
-            </select>
-          </div>
-          <div class="col-12 col-lg-2 text-end">
-            <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100" title="Limpiar filtros">
-              <i class="bi bi-eraser"></i> Limpiar Filtros
-            </button>
-          </div>
-        </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
-          <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar
-            Excel</button>
-          <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar
-            CSV</button>
-          <button id="btnExportPDF" class="btn btn-sm btn-export btn-primary text-white"
-            style="background: var(--primary)"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF Bonito</button>
-        </div>
-      </div>
-
-      <div class="section-title"><i class="bi bi-graph-up"></i> Distribución Visual</div>
-      <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Top Solicitantes (Cantidad)</div>
-            <div class="chart-wrap"><canvas id="chartTopClientes"></canvas></div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Top Materiales Solicitados</div>
-            <div class="chart-wrap"><canvas id="chartTopModelos"></canvas></div>
-          </div>
-        </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel chart-card">
-            <div class="fw-semibold mb-2">Proporción por Tipo de Flete</div>
-            <div class="chart-wrap"><canvas id="chartDistribucion"></canvas></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section-title"><i class="bi bi-table"></i> Cuadro Informativo</div>
-      <div class="card-panel" id="tabla-card">
-        <div class="table-responsive">
-          <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
-            <thead></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
+    <div id="archivoInfo" class="d-flex align-items-center gap-2 mt-2 small text-muted d-none">
+      <i class="bi bi-check-circle-fill text-success"></i>
+      <span id="nombreArchivo"></span>
     </div>
   </div>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <div id="estadoVacio" class="empty-state">
+    <i class="bi bi-clipboard-data d-block mb-2"></i>
+    <div class="fs-5 fw-semibold">Todavía no cargaste el archivo de entregas</div>
+    <div>Subí tu Excel para ver los cuadros resumidos filtrados y preparar tus PDFs.</div>
+  </div>
 
-  <script>
-    // Mapeo exacto basado en la estructura real de tu archivo "EXPORT (17)"
-    const CONFIG_COLUMNAS = [
-      { excel: 'Entrega', etiqueta: 'Entrega', clave: 'entrega', numerico: false },
-      { excel: 'Solicitante', etiqueta: 'Solicitante', clave: 'solicitante', numerico: false },
-      { excel: 'Número de material', etiqueta: 'Número de Material', clave: 'material', numerico: false },
-      { excel: 'Cantidad entrega', etiqueta: 'Cantidad Entrega', clave: 'cantidad', numerico: true },
-      { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', clave: 'flete', numerico: false }
-    ];
+  <div id="dashboardContent" class="d-none">
 
-    const PALETA = ['#5B5FC7', '#00B7C3', '#0078D4', '#8764B8', '#107C10', '#C19C00', '#D13438', '#605E5C', '#FF8C00', '#038387'];
+    <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-hash"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiPedidos">0</div>
+            <div class="kpi-label">Total de Filas</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiPares">0</div>
+            <div class="kpi-label">Cantidad Entrega Total</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiClientes">0</div>
+            <div class="kpi-label">Solicitantes Únicos</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="kpi-card">
+          <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
+          <div>
+            <div class="kpi-value" id="kpiModelos">0</div>
+            <div class="kpi-label">Materiales Distintos</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    let datosOriginales = [];
-    let tablaDT = null;
-    let chartClientes, chartModelos, chartDistribucion;
+    <div class="card-panel p-3 mb-4 filters-bar">
+      <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros de búsqueda rápida</div>
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-lg-3">
+          <div class="input-group">
+            <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+            <input type="text" id="buscarGlobal" class="form-control border-start-0" placeholder="Buscar en el cuadro...">
+          </div>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroSolicitante" class="form-select"><option value="">Solicitante (todos)</option></select>
+        </div>
+        <div class="col-6 col-lg-3">
+          <select id="filtroMaterial" class="form-select"><option value="">Número de Material (todos)</option></select>
+        </div>
+        <div class="col-6 col-lg-2">
+          <select id="filtroFlete" class="form-select"><option value="">Flete a cargo de (todos)</option></select>
+        </div>
+        <div class="col-12 col-lg-2 text-end">
+          <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100" title="Limpiar filtros">
+            <i class="bi bi-eraser"></i> Limpiar Filtros
+          </button>
+        </div>
+      </div>
+      <div class="d-flex flex-wrap gap-2 mt-3">
+        <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
+        <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar CSV</button>
+        <button id="btnExportPDF" class="btn btn-sm btn-export text-white" style="background: var(--primary)"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF Bonito</button>
+      </div>
+    </div>
 
-    function formatoNumero(n) {
-      return Number(n || 0).toLocaleString('es-AR');
-    }
-    function colorTexto() {
-      return getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
-    }
-    function colorBorde() {
-      return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
-    }
+    <div class="section-title"><i class="bi bi-graph-up"></i> Distribución Visual</div>
+    <div class="row g-3 mb-4">
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Top Solicitantes (Cantidad)</div>
+          <div class="chart-wrap"><canvas id="chartTopClientes"></canvas></div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Top Materiales Solicitados</div>
+          <div class="chart-wrap"><canvas id="chartTopModelos"></canvas></div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4">
+        <div class="card-panel chart-card">
+          <div class="fw-semibold mb-2">Proporción por Tipo de Flete</div>
+          <div class="chart-wrap"><canvas id="chartDistribucion"></canvas></div>
+        </div>
+      </div>
+    </div>
 
-    const dropzone = document.getElementById('dropzone');
-    const inputArchivo = document.getElementById('inputArchivo');
+    <div class="section-title"><i class="bi bi-table"></i> Cuadro Informativo (Mapeado estrictamente)</div>
+    <div class="card-panel" id="tabla-card">
+      <div class="table-responsive">
+        <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
 
-    dropzone.addEventListener('click', () => inputArchivo.click());
-    inputArchivo.addEventListener('change', e => {
-      if (e.target.files[0]) procesarArchivo(e.target.files[0]);
-    });
-    ['dragenter', 'dragover'].forEach(evt => {
-      dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.add('dragover'); });
-    });
-    ['dragleave', 'drop'].forEach(evt => {
-      dropzone.addEventListener(evt, e => { e.preventDefault(); dropzone.classList.remove('dragover'); });
-    });
-    dropzone.addEventListener('drop', e => {
-      const file = e.dataTransfer.files[0];
-      if (file) procesarArchivo(file);
-    });
-    document.getElementById('btnCambiarArchivo').addEventListener('click', () => {
-      document.getElementById('zonaCarga').classList.remove('d-none');
-      inputArchivo.click();
-    });
+  </div>
+</div>
 
-    function procesarArchivo(file) {
-      if (typeof XLSX === 'undefined') {
-        setTimeout(() => procesarArchivo(file), 400);
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+// CONFIGURACIÓN EXACTA BASADA EN TU CAPTURA Y EXCEL
+const CONFIG_COLUMNAS = [
+  { excel: 'Entrega', etiqueta: 'Entrega', clave: 'entrega', numerico: false },
+  { excel: 'Solicitante', etiqueta: 'Solicitante', clave: 'solicitante', numerico: false },
+  { excel: 'Número de material', etiqueta: 'Número de material', clave: 'material', numerico: false },
+  { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', clave: 'cantidad', numerico: true },
+  { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', clave: 'flete', numerico: false }
+];
+
+const PALETA = ['#5B5FC7','#00B7C3','#0078D4','#8764B8','#107C10','#C19C00','#D13438','#605E5C','#FF8C00','#038387'];
+
+let datosOriginales = [];   
+let tablaDT = null;         
+let chartClientes, chartModelos, chartDistribucion; 
+
+function formatoNumero(n){
+  return Number(n || 0).toLocaleString('es-AR');
+}
+function colorTexto(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
+}
+function colorBorde(){
+  return getComputedStyle(document.documentElement).getPropertyValue('--border').trim();
+}
+
+const dropzone = document.getElementById('dropzone');
+const inputArchivo = document.getElementById('inputArchivo');
+
+dropzone.addEventListener('click', ()=> inputArchivo.click());
+inputArchivo.addEventListener('change', e=>{
+  if(e.target.files[0]) procesarArchivo(e.target.files[0]);
+});
+['dragenter','dragover'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.add('dragover'); });
+});
+['dragleave','drop'].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{ e.preventDefault(); dropzone.classList.remove('dragover'); });
+});
+dropzone.addEventListener('drop', e=>{
+  const file = e.dataTransfer.files[0];
+  if(file) procesarArchivo(file);
+});
+document.getElementById('btnCambiarArchivo').addEventListener('click', ()=>{
+  document.getElementById('zonaCarga').classList.remove('d-none');
+  inputArchivo.click();
+});
+
+function procesarArchivo(file){
+  const lector = new FileReader();
+  lector.onload = (ev)=>{
+    try{
+      const libro = XLSX.read(ev.target.result, {type:'array'});
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+      const filasMatriz = XLSX.utils.sheet_to_json(hoja, {header:1, defval:''});
+      
+      if(filasMatriz.length < 2){
+        alert('El archivo no contiene filas válidas.');
         return;
       }
+      
+      const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim());
 
-      const lector = new FileReader();
-      lector.onload = (ev) => {
-        try {
-          const libro = XLSX.read(ev.target.result, { type: 'array' });
-          const hoja = libro.Sheets[libro.SheetNames[0]];
-          const filasMatriz = XLSX.utils.sheet_to_json(hoja, { header: 1, defval: '' });
-
-          if (filasMatriz.length < 2) {
-            alert('El archivo no contiene filas válidas.');
-            return;
+      // Mapeamos únicamente las 5 columnas solicitadas en el orden pedido
+      const filasProcesadas = filasMatriz.slice(1).map(filaMatriz => {
+        const filaObj = {};
+        CONFIG_COLUMNAS.forEach(col => {
+          const index = headersExcel.indexOf(col.excel);
+          let valor = index !== -1 ? filaMatriz[index] : '';
+          if(col.numerico) {
+            valor = parseFloat(valor) || 0;
           }
-
-          // Limpiamos los headers del Excel para buscarlos con exactitud
-          const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim());
-
-          // Mapeamos únicamente las 5 columnas solicitadas en el orden pedido
-          const filasProcesadas = filasMatriz.slice(1).map(filaMatriz => {
-            const filaObj = {};
-            CONFIG_COLUMNAS.forEach(col => {
-              const index = headersExcel.indexOf(col.excel);
-              let valor = index !== -1 ? filaMatriz[index] : '';
-              if (col.numerico) {
-                valor = parseFloat(valor) || 0;
-              }
-              filaObj[col.etiqueta] = valor;
-            });
-            return filaObj;
-          });
-
-          datosOriginales = filasProcesadas;
-
-          document.getElementById('archivoInfo').classList.remove('d-none');
-          document.getElementById('nombreArchivo').textContent = `${file.name} (${filasProcesadas.length} registros)`;
-          document.getElementById('zonaCarga').classList.add('d-none');
-          document.getElementById('btnCambiarArchivo').classList.remove('d-none');
-          document.getElementById('estadoVacio').classList.add('d-none');
-          document.getElementById('dashboardContent').classList.remove('d-none');
-
-          inicializarFiltros();
-          inicializarTabla();
-        } catch (err) {
-          console.error(err);
-          alert('Error al leer el archivo. Asegúrate de cargar el archivo Excel o CSV correcto.');
-        }
-      };
-      lector.readAsArrayBuffer(file);
-    }
-
-    function inicializarTabla() {
-      if (tablaDT) { tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML = ''; }
-
-      const columnasDT = CONFIG_COLUMNAS.map(col => {
-        return {
-          data: col.etiqueta,
-          title: col.etiqueta,
-          className: col.numerico ? 'text-end fw-semibold' : '',
-          render: col.numerico ? (d) => formatoNumero(d) : null
-        };
-      });
-
-      tablaDT = $('#tablaPedidos').DataTable({
-        data: datosOriginales,
-        columns: columnasDT,
-        destroy: true,
-        scrollX: true,
-        scrollY: '45vh',
-        scrollCollapse: true,
-        deferRender: true,
-        dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rt<"d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"ip>',
-        pageLength: 25,
-        lengthMenu: [10, 25, 50, 100],
-        language: {
-          decimal: ",",
-          thousands: ".",
-          emptyTable: "No hay datos que coincidan con los filtros",
-          info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-          lengthMenu: "Mostrar _MENU_ registros",
-          paginate: { first: "Primero", last: "Último", next: "Siguiente", previous: "Anterior" }
-        }
-      });
-
-      tablaDT.on('draw', actualizarDashboard);
-      actualizarDashboard();
-    }
-
-    function valoresUnicosPorEtiqueta(etiqueta) {
-      return [...new Set(datosOriginales.map(r => String(r[etiqueta]).trim()).filter(v => v !== ''))]
-        .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
-    }
-
-    function llenarSelect(id, valores) {
-      const select = document.getElementById(id);
-      const actual = select.value;
-      select.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
-      valores.forEach(v => {
-        const opt = document.createElement('option');
-        opt.value = v; opt.textContent = v;
-        select.appendChild(opt);
-      });
-      if (valores.includes(actual)) select.value = actual;
-    }
-
-    function inicializarFiltros() {
-      const lblSolicitante = CONFIG_COLUMNAS.find(c => c.clave === 'solicitante').etiqueta;
-      const lblMaterial = CONFIG_COLUMNAS.find(c => c.clave === 'material').etiqueta;
-      const lblFlete = CONFIG_COLUMNAS.find(c => c.clave === 'flete').etiqueta;
-
-      llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta(lblSolicitante));
-      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta(lblMaterial));
-      llenarSelect('filtroFlete', valoresUnicosPorEtiqueta(lblFlete));
-
-      document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna(lblSolicitante, 'filtroSolicitante');
-      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna(lblMaterial, 'filtroMaterial');
-      document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna(lblFlete, 'filtroFlete');
-
-      document.getElementById('buscarGlobal').oninput = (e) => {
-        if (tablaDT) tablaDT.search(e.target.value).draw();
-      };
-
-      document.getElementById('btnLimpiarFiltros').onclick = limpiarFiltros;
-    }
-
-    function aplicarFiltroColumna(etiqueta, idSelect) {
-      if (!tablaDT) return;
-      const valor = document.getElementById(idSelect).value;
-      let idx = -1;
-      tablaDT.settings()[0].aoColumns.forEach((c, i) => { if (c.data === etiqueta) idx = i; });
-      if (idx === -1) return;
-      const escapado = valor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      tablaDT.column(idx).search(valor ? `^${escapado}$` : '', true, false).draw();
-    }
-
-    function limpiarFiltros() {
-      ['filtroSolicitante', 'filtroMaterial', 'filtroFlete'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('buscarGlobal').value = '';
-      if (tablaDT) {
-        tablaDT.columns().search('');
-        tablaDT.search('').draw();
-      }
-    }
-
-    function actualizarDashboard() {
-      if (!tablaDT) return;
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
-
-      const lblSolicitante = CONFIG_COLUMNAS.find(c => c.clave === 'solicitante').etiqueta;
-      const lblMaterial = CONFIG_COLUMNAS.find(c => c.clave === 'material').etiqueta;
-      const lblCantidad = CONFIG_COLUMNAS.find(c => c.clave === 'cantidad').etiqueta;
-      const lblFlete = CONFIG_COLUMNAS.find(c => c.clave === 'flete').etiqueta;
-
-      // Calculos KPI
-      const totalFilas = filas.length;
-      const totalPares = filas.reduce((s, f) => s + (f[lblCantidad] || 0), 0);
-      const totalClientes = new Set(filas.map(f => f[lblSolicitante]).filter(v => v !== '')).size;
-      const totalModelos = new Set(filas.map(f => f[lblMaterial]).filter(v => v !== '')).size;
-
-      document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
-      document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
-      document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
-      document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
-
-      // Render de gráficos
-      const textoColor = colorTexto();
-      Chart.defaults.color = textoColor;
-      Chart.defaults.borderColor = colorBorde();
-
-      // 1. Solicitantes
-      const mapaS = new Map();
-      filas.forEach(f => mapaS.set(f[lblSolicitante], (mapaS.get(f[lblSolicitante]) || 0) + (f[lblCantidad] || 0)));
-      const topS = [...mapaS.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-
-      if (chartClientes) chartClientes.destroy();
-      chartClientes = new Chart(document.getElementById('chartTopClientes'), {
-        type: 'bar',
-        data: { labels: topS.map(t => t[0]), datasets: [{ label: 'Cant. Entrega', data: topS.map(t => t[1]), backgroundColor: '#5B5FC7', borderRadius: 4 }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-
-      // 2. Materiales
-      const mapaM = new Map();
-      filas.forEach(f => mapaM.set(f[lblMaterial], (mapaM.get(f[lblMaterial]) || 0) + (f[lblCantidad] || 0)));
-      const topM = [...mapaM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10);
-
-      if (chartModelos) chartModelos.destroy();
-      chartModelos = new Chart(document.getElementById('chartTopModelos'), {
-        type: 'bar',
-        data: { labels: topM.map(t => t[0]), datasets: [{ label: 'Total Cantidad', data: topM.map(t => t[1]), backgroundColor: '#00B7C3', borderRadius: 4 }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-      });
-
-      // 3. Flete
-      const mapaF = new Map();
-      filas.forEach(f => mapaF.set(f[lblFlete] || 'No definido', (mapaF.get(f[lblFlete] || 'No definido') || 0) + (f[lblCantidad] || 0)));
-      const ordenF = [...mapF.entries()].sort((a, b) => b[1] - a[1]);
-
-      if (chartDistribucion) chartDistribucion.destroy();
-      chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
-        type: 'doughnut',
-        data: { labels: ordenF.map(t => t[0]), datasets: [{ data: ordenF.map(t => t[1]), backgroundColor: PALETA, borderWidth: 2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--surface') }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 9 } } } } }
-      });
-    }
-
-    // Botones de exportación básica
-    document.getElementById('btnExportExcel').addEventListener('click', () => {
-      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
-      const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
-      const libro = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(libro, hoja, 'Cuadro Filtrado');
-      XLSX.writeFile(libro, 'cuadro_entregas.xlsx');
-    });
-
-    document.getElementById('btnExportCSV').addEventListener('click', () => {
-      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
-      const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
-      const csv = XLSX.utils.sheet_to_csv(hoja);
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'cuadro_entregas.csv';
-      a.click();
-    });
-
-    // EXPORTACIÓN A PDF TOTALMENTE ESTILIZADA Y BONITA
-    document.getElementById('btnExportPDF').addEventListener('click', () => {
-      const { jsPDF } = window.jspdf;
-      // A4 en disposición horizontal (Landscape)
-      const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-
-      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
-      const filasDatos = tablaDT.rows({ search: 'applied' }).data().toArray().map(fila => {
-        return CONFIG_COLUMNAS.map(col => {
-          let valor = fila[col.etiqueta] ?? '';
-          if (col.numerico) {
-            return formatoNumero(valor);
-          }
-          return String(valor);
+          filaObj[col.etiqueta] = valor;
         });
+        return filaObj;
       });
 
-      // Título Principal Estilo Corporativo
-      doc.setFontSize(16);
-      doc.setFont("Helvetica", "bold");
-      doc.setTextColor(32, 31, 30); // Gris oscuro elegante
-      doc.text('Reporte de Resumen de Entregas y Preparación', 40, 35);
+      datosOriginales = filasProcesadas;
 
-      // Metadatos / Subtítulo
-      doc.setFontSize(9);
-      doc.setFont("Helvetica", "normal");
-      doc.setTextColor(96, 94, 92); // Muted text
-      doc.text(`Fecha de Emisión: ${new Date().toLocaleString('es-AR')}   |   Registros Totales Presentes: ${filasDatos.length}`, 40, 52);
+      document.getElementById('archivoInfo').classList.remove('d-none');
+      document.getElementById('nombreArchivo').textContent = `${file.name} (${filasProcesadas.length} registros)`;
+      document.getElementById('zonaCarga').classList.add('d-none');
+      document.getElementById('btnCambiarArchivo').classList.remove('d-none');
+      document.getElementById('estadoVacio').classList.add('d-none');
+      document.getElementById('dashboardContent').classList.remove('d-none');
 
-      // Línea divisoria fina estetica
-      doc.setDrawColor(225, 223, 221);
-      doc.setLineWidth(1);
-      doc.line(40, 60, 802, 60);
+      inicializarFiltros();
+      inicializarTabla();
+    }catch(err){
+      console.error(err);
+      alert('Error al leer el archivo. Asegúrate de cargar el archivo Excel o CSV correcto.');
+    }
+  };
+  lector.readAsArrayBuffer(file);
+}
 
-      // Renderizado Prolijo con Autotable
-      doc.autoTable({
-        head: [cabeceras],
-        body: filasDatos,
-        startY: 75,
-        margin: { left: 40, right: 40 },
-        styles: {
-          fontSize: 8.5,
-          cellPadding: 6,
-          overflow: 'linebreak',
-          valign: 'middle',
-          textColor: [40, 40, 40]
-        },
-        headStyles: {
-          fillColor: [91, 95, 199], // El color morado/azul primario de la app
-          textColor: 255,
-          fontStyle: 'bold',
-          fontSize: 9
-        },
-        alternateRowStyles: {
-          fillColor: [248, 249, 250] // Alternancia muy suave
-        },
-        columnStyles: {
-          0: { cellWidth: 70 },  // Entrega
-          1: { cellWidth: 180 }, // Solicitante
-          2: { cellWidth: 150 }, // Número de material
-          3: { cellWidth: 80, halign: 'right' }, // Cantidad Entrega alineado a la derecha
-          4: { cellWidth: 'auto' } // Flete
-        }
-      });
+function inicializarTabla(){
+  if(tablaDT){ tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML=''; }
 
-      // Descarga del PDF
-      doc.save('reporte_entregas_filtrado.pdf');
+  const columnasDT = CONFIG_COLUMNAS.map(col => {
+    return {
+      data: col.etiqueta,
+      title: col.etiqueta,
+      className: col.numerico ? 'text-end fw-bold text-primary' : '',
+      render: col.numerico ? (d)=> formatoNumero(d) : null
+    };
+  });
+
+  tablaDT = $('#tablaPedidos').DataTable({
+    data: datosOriginales,
+    columns: columnasDT,
+    destroy: true,
+    scrollX: true,
+    scrollY: '45vh',
+    scrollCollapse: true,
+    deferRender: true,
+    dom: '<"d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2"l>rt<"d-flex justify-content-between align-items-center flex-wrap gap-2 mt-2"ip>',
+    pageLength: 25,
+    lengthMenu: [10,25,50,100],
+    language: {
+      decimal: ",",
+      thousands: ".",
+      emptyTable: "No hay datos que coincidan con los filtros",
+      info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+      lengthMenu: "Mostrar _MENU_ registros",
+      paginate: {first:"Primero",last:"Último",next:"Siguiente",previous:"Anterior"}
+    }
+  });
+
+  tablaDT.on('draw', actualizarDashboard);
+  actualizarDashboard();
+}
+
+function valoresUnicosPorEtiqueta(etiqueta){
+  return [...new Set(datosOriginales.map(r=> String(r[etiqueta]).trim()).filter(v=>v!==''))]
+    .sort((a,b)=> a.localeCompare(b,'es',{numeric:true}));
+}
+
+function llenarSelect(id, valores){
+  const select = document.getElementById(id);
+  const actual = select.value;
+  select.querySelectorAll('option:not(:first-child)').forEach(o=>o.remove());
+  valores.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = v;
+    select.appendChild(opt);
+  });
+  if(valores.includes(actual)) select.value = actual;
+}
+
+function inicializarFiltros(){
+  const lblSolicitante = CONFIG_COLUMNAS.find(c=>c.clave==='solicitante').etiqueta;
+  const lblMaterial = CONFIG_COLUMNAS.find(c=>c.clave==='material').etiqueta;
+  const lblFlete = CONFIG_COLUMNAS.find(c=>c.clave==='flete').etiqueta;
+
+  llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta(lblSolicitante));
+  llenarSelect('filtroMaterial',    valoresUnicosPorEtiqueta(lblMaterial));
+  llenarSelect('filtroFlete',       valoresUnicosPorEtiqueta(lblFlete));
+
+  document.getElementById('filtroSolicitante').onchange = ()=> aplicarFiltroColumna(lblSolicitante, 'filtroSolicitante');
+  document.getElementById('filtroMaterial').onchange    = ()=> aplicarFiltroColumna(lblMaterial, 'filtroMaterial');
+  document.getElementById('filtroFlete').onchange       = ()=> aplicarFiltroColumna(lblFlete, 'filtroFlete');
+
+  document.getElementById('buscarGlobal').oninput = (e)=>{
+    if(tablaDT) tablaDT.search(e.target.value).draw();
+  };
+
+  document.getElementById('btnLimpiarFiltros').onclick = limpiarFiltros;
+}
+
+function aplicarFiltroColumna(etiqueta, idSelect){
+  if(!tablaDT) return;
+  const valor = document.getElementById(idSelect).value;
+  let idx = -1;
+  tablaDT.settings()[0].aoColumns.forEach((c,i)=>{ if(c.data === etiqueta) idx = i; });
+  if(idx === -1) return;
+  const escapado = valor.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  tablaDT.column(idx).search(valor ? `^${escapado}$` : '', true, false).draw();
+}
+
+function limpiarFiltros(){
+  ['filtroSolicitante','filtroMaterial','filtroFlete'].forEach(id=> document.getElementById(id).value='');
+  document.getElementById('buscarGlobal').value = '';
+  if(tablaDT){
+    tablaDT.columns().search('');
+    tablaDT.search('').draw();
+  }
+}
+
+function actualizarDashboard(){
+  if(!tablaDT) return;
+  const filas = tablaDT.rows({search:'applied'}).data().toArray();
+  
+  const lblSolicitante = CONFIG_COLUMNAS.find(c=>c.clave==='solicitante').etiqueta;
+  const lblMaterial = CONFIG_COLUMNAS.find(c=>c.clave==='material').etiqueta;
+  const lblCantidad = CONFIG_COLUMNAS.find(c=>c.clave==='cantidad').etiqueta;
+  const lblFlete = CONFIG_COLUMNAS.find(c=>c.clave==='flete').etiqueta;
+
+  // CÁLCULOS CORREGIDOS (Hacen Match exacto con las etiquetas mapeadas)
+  const totalFilas = filas.length;
+  const totalPares = filas.reduce((s,f)=> s + (f[lblCantidad] || 0), 0);
+  const totalClientes = new Set(filas.map(f=>f[lblSolicitante]).filter(v=>v!=='')).size;
+  const totalModelos = new Set(filas.map(f=>f[lblMaterial]).filter(v=>v!=='')).size;
+
+  document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
+  document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
+  document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
+  document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
+
+  // Render de gráficos
+  const textoColor = colorTexto();
+  Chart.defaults.color = textoColor;
+  Chart.defaults.borderColor = colorBorde();
+
+  // 1. Solicitantes
+  const mapaS = new Map();
+  filas.forEach(f=> mapaS.set(f[lblSolicitante], (mapaS.get(f[lblSolicitante])||0) + (f[lblCantidad]||0)));
+  const topS = [...mapaS.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  if(chartClientes) chartClientes.destroy();
+  chartClientes = new Chart(document.getElementById('chartTopClientes'), {
+    type:'bar',
+    data:{ labels: topS.map(t=>t[0]), datasets:[{ label:'Cant. Entrega', data: topS.map(t=>t[1]), backgroundColor:'#5B5FC7', borderRadius:4 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
+  });
+
+  // 2. Materiales
+  const mapaM = new Map();
+  filas.forEach(f=> mapaM.set(f[lblMaterial], (mapaM.get(f[lblMaterial])||0) + (f[lblCantidad]||0)));
+  const topM = [...mapaM.entries()].sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  if(chartModelos) chartModelos.destroy();
+  chartModelos = new Chart(document.getElementById('chartTopModelos'), {
+    type:'bar',
+    data:{ labels: topM.map(t=>t[0]), datasets:[{ label:'Total Cantidad', data: topM.map(t=>t[1]), backgroundColor:'#00B7C3', borderRadius:4 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false} } }
+  });
+
+  // 3. Flete
+  const mapaF = new Map();
+  filas.forEach(f=> mapaF.set(f[lblFlete] || 'No definido', (mapaF.get(f[lblFlete] || 'No definido')||0) + (f[lblCantidad]||0)));
+  const ordenF = [...mapF.entries()].sort((a,b)=>b[1]-a[1]);
+
+  if(chartDistribucion) chartDistribucion.destroy();
+  chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
+    type:'doughnut',
+    data:{ labels: ordenF.map(t=>t[0]), datasets:[{ data: ordenF.map(t=>t[1]), backgroundColor: PALETA, borderWidth:2, borderColor: getComputedStyle(document.documentElement).getPropertyValue('--surface') }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:9} } } } }
+  });
+}
+
+// Botones de exportación básica
+document.getElementById('btnExportExcel').addEventListener('click', ()=>{
+  const cabeceras = CONFIG_COLUMNAS.map(c=>c.etiqueta);
+  const filas = tablaDT.rows({search:'applied'}).data().toArray();
+  const hoja = XLSX.utils.json_to_sheet(filas, {header: cabeceras});
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Cuadro Filtrado');
+  XLSX.writeFile(libro, 'cuadro_entregas.xlsx');
+});
+
+document.getElementById('btnExportCSV').addEventListener('click', ()=>{
+  const cabeceras = CONFIG_COLUMNAS.map(c=>c.etiqueta);
+  const filas = tablaDT.rows({search:'applied'}).data().toArray();
+  const hoja = XLSX.utils.json_to_sheet(filas, {header: cabeceras});
+  const csv = XLSX.utils.sheet_to_csv(hoja);
+  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'cuadro_entregas.csv';
+  a.click();
+});
+
+// EXPORTACIÓN A PDF TOTALMENTE ESTILIZADA Y BONITA (HORIZONTAL)
+document.getElementById('btnExportPDF').addEventListener('click', ()=>{
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+  
+  const cabeceras = CONFIG_COLUMNAS.map(c=>c.etiqueta);
+  const filasDatos = tablaDT.rows({search:'applied'}).data().toArray().map(fila => {
+    return CONFIG_COLUMNAS.map(col => {
+      let valor = fila[col.etiqueta] ?? '';
+      if(col.numerico) {
+        return formatoNumero(valor);
+      }
+      return String(valor);
     });
+  });
 
-    // Switcher de temas
-    document.getElementById('btnTema').addEventListener('click', () => {
-      const html = document.documentElement;
-      const esOscuro = html.getAttribute('data-theme') === 'dark';
-      html.setAttribute('data-theme', esOscuro ? 'light' : 'dark');
-      document.getElementById('btnTema').innerHTML = esOscuro
-        ? '<i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>'
-        : '<i class="bi bi-sun-fill"></i> <span class="d-none d-md-inline">Modo claro</span>';
-      if (tablaDT) actualizarDashboard();
-    });
-  </script>
+  // Título Principal Estilo Corporativo
+  doc.setFontSize(16);
+  doc.setFont("Helvetica", "bold");
+  doc.setTextColor(32, 31, 30);
+  doc.text('Reporte de Resumen de Entregas y Preparación', 40, 35);
+  
+  doc.setFontSize(9);
+  doc.setFont("Helvetica", "normal");
+  doc.setTextColor(96, 94, 92);
+  doc.text(`Fecha de Emisión: ${new Date().toLocaleString('es-AR')}   |   Registros Totales: ${filasDatos.length}`, 40, 52);
+
+  doc.setDrawColor(225, 223, 221);
+  doc.setLineWidth(1);
+  doc.line(40, 60, 802, 60);
+
+  // Renderizado Prolijo con Autotable
+  doc.autoTable({
+    head: [cabeceras],
+    body: filasDatos,
+    startY: 75,
+    margin: { left: 40, right: 40 },
+    styles: { 
+      fontSize: 8.5, 
+      cellPadding: 6,
+      overflow: 'linebreak',
+      valign: 'middle',
+      textColor: [40, 40, 40]
+    },
+    headStyles: { 
+      fillColor: [91, 95, 199], 
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 9
+    },
+    alternateRowStyles: { 
+      fillColor: [248, 249, 250] 
+    },
+    columnStyles: {
+      0: { cellWidth: 70 },  // Entrega
+      1: { cellWidth: 180 }, // Solicitante
+      2: { cellWidth: 150 }, // Número de material
+      3: { cellWidth: 80, halign: 'right' }, // Cantidad Entrega alineado a la derecha
+      4: { cellWidth: 'auto' } // Flete a cargo de:
+    }
+  });
+
+  doc.save('reporte_entregas_filtrado.pdf');
+});
+
+document.getElementById('btnTema').addEventListener('click', ()=>{
+  const html = document.documentElement;
+  const esOscuro = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', esOscuro ? 'light' : 'dark');
+  document.getElementById('btnTema').innerHTML = esOscuro
+    ? '<i class="bi bi-moon-stars-fill"></i> <span class="d-none d-md-inline">Modo oscuro</span>'
+    : '<i class="bi bi-sun-fill"></i> <span class="d-none d-md-inline">Modo claro</span>';
+  if(tablaDT) actualizarDashboard();
+});
+</script>
 </body>
-
 </html>
