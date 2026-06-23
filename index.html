@@ -401,9 +401,27 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    // SOLUCIÓN EFECTIVA: Reseteamos la pestaña completa para evitar la rotura del HTML provocada por destruir DataTables
+    // CORRECCIÓN DEFINITIVA: Limpieza segura sin romper la estructura de la tabla
     btnCambiarArchivo.addEventListener('click', () => {
-      window.location.reload();
+      inputArchivo.value = '';
+      datosOriginales = [];
+      
+      if (tablaDT) {
+        tablaDT.destroy();
+        tablaDT = null;
+      }
+
+      // Limpiar los elementos internos generados por DataTables para dejar el esqueleto limpio
+      document.querySelector('#tablaPedidos thead').innerHTML = '';
+      document.querySelector('#tablaPedidos tbody').innerHTML = '';
+      document.querySelector('#tablaPedidos tfoot').innerHTML = '';
+
+      // Mostrar interfaz de carga de nuevo
+      document.getElementById('archivoInfo').classList.add('d-none');
+      document.getElementById('zonaCarga').classList.remove('d-none');
+      btnCambiarArchivo.classList.add('d-none');
+      document.getElementById('dashboardContent').classList.add('d-none');
+      document.getElementById('estadoVacio').classList.remove('d-none');
     });
 
     function procesarArchivo(file) {
@@ -643,7 +661,7 @@
       });
       filasDatos.push(filaTotal);
 
-      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparación Logística', 40, 35);
+      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparation Logística', 40, 35);
       doc.autoTable({
         head: [cabeceras],
         body: filasDatos,
