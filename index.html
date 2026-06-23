@@ -379,13 +379,13 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Las 6 columnas requeridas con sus nombres normalizados estrictos según fotos del monitor
+    // Mapeo exacto según las columnas reales visibles en tu pantalla
     const CONFIG_COLUMNAS = [
       { excelAlternatives: ['entrega'], etiqueta: 'Entrega', numerico: false },
-      { excelAlternatives: ['solicitante', 'solicit.'], etiqueta: 'Solicitante', numerico: false },
-      { excelAlternatives: ['numero de material', 'numero material'], etiqueta: 'Numero de material', numerico: false },
-      { excelAlternatives: ['cantidad de entrega', 'cantidad entrega'], etiqueta: 'Cantidad de entrega', numerico: true },
-      { excelAlternatives: ['referencia de cliente', 'referencia cliente', 'referencia'], etiqueta: 'referencia de cliente', numerico: false },
+      { excelAlternatives: ['solicitante'], etiqueta: 'Solicitante', numerico: false },
+      { excelAlternatives: ['numero de material'], etiqueta: 'Número de material', numerico: false },
+      { excelAlternatives: ['cantidad entrega'], etiqueta: 'Cantidad entrega', numerico: true },
+      { excelAlternatives: ['referencia cliente'], etiqueta: 'Referencia cliente', numerico: false },
       { excelAlternatives: ['flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
     ];
 
@@ -401,8 +401,11 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    function normalizarTexto(t) {
-      return String(t ?? '').trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-0]/g, " ");
+    // Nueva función de normalización que mantiene espacios para que coincida perfecto
+    function limpiarCabecera(t) {
+      return String(t ?? '').trim().toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita acentos
+        .replace(/\s+/g, ' '); // Deja espacios simples normales
     }
 
     function procesarArchivo(file) {
@@ -415,20 +418,19 @@
 
           if (filasMatriz.length < 1) return alert('El archivo está vacío.');
 
-          // Buscar de forma dinámica en qué fila están las cabeceras reales de SAP
+          // Buscamos dinámicamente en qué fila empiezan tus títulos reales de SAP
           let filaEncabezadoIdx = -1;
-          for (let i = 0; i < Math.min(filasMatriz.length, 10); i++) {
-            const filaNorm = filasMatriz[i].map(c => normalizarTexto(c));
-            if (filaNorm.includes('entrega') && (filaNorm.includes('solicitante') || filaNorm.includes('solicit'))) {
+          for (let i = 0; i < Math.min(filasMatriz.length, 12); i++) {
+            const filaNorm = filasMatriz[i].map(c => limpiarCabecera(c));
+            if (filaNorm.includes('entrega') && filaNorm.includes('solicitante')) {
               filaEncabezadoIdx = i;
               break;
             }
           }
 
-          // Si no la detecta automáticamente, por defecto usa la fila 0
           if (filaEncabezadoIdx === -1) filaEncabezadoIdx = 0;
 
-          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => normalizarTexto(h));
+          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => limpiarCabecera(h));
 
           datosOriginales = filasMatriz.slice(filaEncabezadoIdx + 1)
             .filter(fila => {
@@ -442,7 +444,7 @@
               CONFIG_COLUMNAS.forEach(col => {
                 let index = headersExcel.findIndex(header =>
                   col.excelAlternatives.some(alt => {
-                    const altNorm = normalizarTexto(alt);
+                    const altNorm = limpiarCabecera(alt);
                     return header === altNorm || header.includes(altNorm);
                   })
                 );
@@ -457,7 +459,7 @@
               });
               return filaObj;
             })
-            // Descartar registros fantasmas o rotos
+            // Aseguramos omitir filas vacías
             .filter(f => f['Entrega'] !== '' && f['Entrega'] !== '0' && f['Solicitante'] !== '');
 
           document.getElementById('archivoInfo').classList.remove('d-none');
@@ -487,7 +489,7 @@
         headHtml += `<th>${col.etiqueta}</th>`;
         if (col.etiqueta === 'Entrega') {
           footHtml += `<th>TOTAL GENERAL</th>`;
-        } else if (col.etiqueta === 'Cantidad de entrega') {
+        } else if (col.etiqueta === 'Cantidad entrega') {
           footHtml += `<th id="totalSumaCantidad">0</th>`;
         } else {
           footHtml += `<th></th>`;
@@ -543,11 +545,11 @@
 
     function inicializarFiltros() {
       llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Solicitante'));
-      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Numero de material'));
+      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Número de material'));
       llenarSelect('filtroFlete', valoresUnicosPorEtiqueta('Flete a cargo de:'));
 
       document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
-      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Numero de material', 'filtroMaterial');
+      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Número de material', 'filtroMaterial');
       document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
 
       document.getElementById('buscarGlobal').oninput = (e) => { if (tablaDT) tablaDT.search(e.target.value).draw(); };
@@ -570,9 +572,9 @@
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
 
       const totalFilas = filas.length;
-      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad de entrega']) || 0), 0);
+      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
       const totalClientes = new Set(filas.map(f => f['Solicitante'])).size;
-      const totalModelos = new Set(filas.map(f => f['Numero de material'])).size;
+      const totalModelos = new Set(filas.map(f => f['Número de material'])).size;
 
       document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
       document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
@@ -583,7 +585,7 @@
       const elTotalWeb = document.getElementById('totalSumaCantidad');
       if (elTotalWeb) elTotalWeb.textContent = txtTotalPares;
 
-      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad de entrega'] || 0)));
+      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad entrega'] || 0)));
       const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartClientes) chartClientes.destroy();
       chartClientes = new Chart(document.getElementById('chartTopClientes'), {
@@ -591,7 +593,7 @@
         options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      const mapM = new Map(); filas.forEach(f => mapM.set(f['Numero de material'], (mapM.get(f['Numero de material']) || 0) + (f['Cantidad de entrega'] || 0)));
+      const mapM = new Map(); filas.forEach(f => mapM.set(f['Número de material'], (mapM.get(f['Número de material']) || 0) + (f['Cantidad entrega'] || 0)));
       const topM = [...mapM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartModelos) chartModelos.destroy();
       chartModelos = new Chart(document.getElementById('chartTopModelos'), {
@@ -599,7 +601,7 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad de entrega'] || 0)));
+      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad entrega'] || 0)));
       if (chartDistribucion) chartDistribucion.destroy();
       chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
         type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#8764B8'] }] },
@@ -642,7 +644,7 @@
 
       const filaTotal = CONFIG_COLUMNAS.map(col => {
         if (col.etiqueta === 'Entrega') return 'TOTAL GENERAL';
-        if (col.etiqueta === 'Cantidad de entrega') return formatoNumero(sumaTotalPares);
+        if (col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaTotalPares);
         return '';
       });
       filasDatos.push(filaTotal);
@@ -664,9 +666,9 @@
         columnStyles: {
           0: { cellWidth: 70 },   // Entrega
           1: { cellWidth: 100 },  // Solicitante
-          2: { cellWidth: 100 },  // Numero de material
-          3: { cellWidth: 80 },   // Cantidad de entrega
-          4: { cellWidth: 120 },  // referencia de cliente
+          2: { cellWidth: 100 },  // Número de material
+          3: { cellWidth: 80 },   // Cantidad entrega
+          4: { cellWidth: 120 },  // Referencia cliente
           5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
