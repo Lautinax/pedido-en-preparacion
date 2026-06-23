@@ -379,18 +379,10 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
+    // Configuración con las equivalencias exactas según el orden solicitado
     const CONFIG_COLUMNAS = [
       {
-        excelAlternatives: [
-          'entrega',
-          'nº entrega',
-          'n° entrega',
-          'nro entrega',
-          'numero entrega',
-          'número entrega',
-          'numero de entrega',
-          'número de entrega'
-        ],
+        excelAlternatives: ['entrega', 'nº entrega', 'n° entrega', 'nro entrega', 'numero entrega'],
         etiqueta: 'Entrega',
         numerico: false
       },
@@ -400,22 +392,22 @@
         numerico: false
       },
       {
-        excelAlternatives: ['número de material', 'material'],
-        etiqueta: 'Número de material',
+        excelAlternatives: ['numero de material', 'número de material', 'material'],
+        etiqueta: 'Numero de material',
         numerico: false
       },
       {
-        excelAlternatives: ['cantidad entrega', 'cantidad'],
-        etiqueta: 'Cantidad entrega',
+        excelAlternatives: ['cantidad de entrega', 'cantidad entrega', 'cantidad'],
+        etiqueta: 'Cantidad de entrega',
         numerico: true
       },
       {
-        excelAlternatives: ['referencia cliente', 'ped.clte.', 'referencia'],
-        etiqueta: 'Referencia cliente',
+        excelAlternatives: ['referencia de cliente', 'referencia cliente', 'ped.clte.'],
+        etiqueta: 'referencia de cliente',
         numerico: false
       },
       {
-        excelAlternatives: ['flete a cargo de:', 'flete'],
+        excelAlternatives: ['flete a cargo de:', 'flete a cargo de', 'flete'],
         etiqueta: 'Flete a cargo de:',
         numerico: false
       }
@@ -443,7 +435,11 @@
 
           if (filasMatriz.length < 2) return alert('El archivo no contiene filas válidas.');
 
-          const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim().toLowerCase());
+          // Limpiar encabezados quitando tildes y espacios extraños
+          const headersExcel = filasMatriz[0].map(h => 
+            String(h ?? '').trim().toLowerCase()
+              .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          );
 
           datosOriginales = filasMatriz.slice(1)
             .filter(fila => {
@@ -455,19 +451,13 @@
               const filaObj = {};
 
               CONFIG_COLUMNAS.forEach(col => {
+                // Buscar el índice normalizando también las alternativas de configuración
                 let index = headersExcel.findIndex(header =>
-                  col.excelAlternatives.some(alt => header === alt.toLowerCase() || header.includes(alt.toLowerCase()))
+                  col.excelAlternatives.some(alt => {
+                    const altNorm = alt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    return header === altNorm || header.includes(altNorm);
+                  })
                 );
-
-                if (index === -1 && col.etiqueta === 'Entrega') {
-                  index = headersExcel.findIndex(h => h.includes('entrega'));
-                }
-                if (index === -1 && col.etiqueta === 'Flete a cargo de:') {
-                  index = headersExcel.findIndex(h => h.includes('flete'));
-                }
-                if (index === -1 && col.etiqueta === 'Referencia cliente') {
-                  index = headersExcel.findIndex(h => h.includes('referencia') || h.includes('ped.clte'));
-                }
 
                 let valor = index !== -1 ? filaMatriz[index] : '';
 
@@ -508,7 +498,7 @@
         headHtml += `<th>${col.etiqueta}</th>`;
         if (col.etiqueta === 'Entrega') {
           footHtml += `<th>TOTAL GENERAL</th>`;
-        } else if (col.etiqueta === 'Cantidad entrega') {
+        } else if (col.etiqueta === 'Cantidad de entrega') {
           footHtml += `<th id="totalSumaCantidad">0</th>`;
         } else {
           footHtml += `<th></th>`;
@@ -564,11 +554,11 @@
 
     function inicializarFiltros() {
       llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Solicitante'));
-      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Número de material'));
+      llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Numero de material'));
       llenarSelect('filtroFlete', valoresUnicosPorEtiqueta('Flete a cargo de:'));
 
       document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
-      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Número de material', 'filtroMaterial');
+      document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Numero de material', 'filtroMaterial');
       document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
 
       document.getElementById('buscarGlobal').oninput = (e) => { if (tablaDT) tablaDT.search(e.target.value).draw(); };
@@ -591,9 +581,9 @@
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
 
       const totalFilas = filas.length;
-      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
+      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad de entrega']) || 0), 0);
       const totalClientes = new Set(filas.map(f => f['Solicitante'])).size;
-      const totalModelos = new Set(filas.map(f => f['Número de material'])).size;
+      const totalModelos = new Set(filas.map(f => f['Numero de material'])).size;
 
       document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
       document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
@@ -604,7 +594,7 @@
       const elTotalWeb = document.getElementById('totalSumaCantidad');
       if (elTotalWeb) elTotalWeb.textContent = txtTotalPares;
 
-      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad entrega'] || 0)));
+      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad de entrega'] || 0)));
       const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartClientes) chartClientes.destroy();
       chartClientes = new Chart(document.getElementById('chartTopClientes'), {
@@ -612,7 +602,7 @@
         options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      const mapM = new Map(); filas.forEach(f => mapM.set(f['Número de material'], (mapM.get(f['Número de material']) || 0) + (f['Cantidad entrega'] || 0)));
+      const mapM = new Map(); filas.forEach(f => mapM.set(f['Numero de material'], (mapM.get(f['Numero de material']) || 0) + (f['Cantidad de entrega'] || 0)));
       const topM = [...mapM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartModelos) chartModelos.destroy();
       chartModelos = new Chart(document.getElementById('chartTopModelos'), {
@@ -620,7 +610,7 @@
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
-      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad entrega'] || 0)));
+      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido'] || 0) + (f['Cantidad de entrega'] || 0)));
       if (chartDistribucion) chartDistribucion.destroy();
       chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
         type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#8764B8'] }] },
@@ -663,7 +653,7 @@
 
       const filaTotal = CONFIG_COLUMNAS.map(col => {
         if (col.etiqueta === 'Entrega') return 'TOTAL GENERAL';
-        if (col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaTotalPares);
+        if (col.etiqueta === 'Cantidad de entrega') return formatoNumero(sumaTotalPares);
         return '';
       });
       filasDatos.push(filaTotal);
@@ -685,9 +675,9 @@
         columnStyles: {
           0: { cellWidth: 70 },   // Entrega
           1: { cellWidth: 100 },  // Solicitante
-          2: { cellWidth: 100 },  // Número de material
-          3: { cellWidth: 70 },   // Cantidad entrega
-          4: { cellWidth: 120 },  // Referencia cliente
+          2: { cellWidth: 100 },  // Numero de material
+          3: { cellWidth: 80 },   // Cantidad de entrega
+          4: { cellWidth: 120 },  // referencia de cliente
           5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
@@ -703,4 +693,3 @@
 </body>
 
 </html>
-
