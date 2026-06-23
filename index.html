@@ -304,7 +304,6 @@ table.dataTable tfoot th{
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// REEMPLAZO 1: CONFIG_COLUMNAS OPTIMIZADO
 const CONFIG_COLUMNAS = [
   {
     excelAlternatives: [
@@ -374,9 +373,7 @@ function procesarArchivo(file){
       datosOriginales = filasMatriz.slice(1).map(filaMatriz => {
         const filaObj = {};
         
-        // REEMPLAZO 2: LECTURA DE COLUMNAS FLEXIBLE (.includes e inyección limpia de entrega)
         CONFIG_COLUMNAS.forEach(col => {
-
           let index = headersExcel.findIndex(header =>
             col.excelAlternatives.some(alt =>
               header.includes(alt.toLowerCase())
@@ -384,15 +381,11 @@ function procesarArchivo(file){
           );
 
           if(index === -1 && col.etiqueta === 'Entrega'){
-            index = headersExcel.findIndex(h =>
-              h.includes('entrega')
-            );
+            index = headersExcel.findIndex(h => h.includes('entrega'));
           }
 
           if(index === -1 && col.etiqueta === 'Flete a cargo de:'){
-            index = headersExcel.findIndex(h =>
-              h.includes('flete')
-            );
+            index = headersExcel.findIndex(h => h.includes('flete'));
           }
 
           let valor = index !== -1 ? filaMatriz[index] : '';
@@ -408,7 +401,6 @@ function procesarArchivo(file){
               ? (parseFloat(valor) || 0)
               : String(valor ?? '').trim();
           }
-
         });
         return filaObj;
       });
@@ -446,20 +438,12 @@ function inicializarTabla(){
   headersContainer.innerHTML = headHtml;
   footersContainer.innerHTML = footHtml;
 
-  // REEMPLAZO 3: CONFIGURACIÓN Y RENDERING PARA DATATABLES
   const columnasDT = CONFIG_COLUMNAS.map(col => ({
     data: col.etiqueta,
     className: 'text-center',
     render: function(d){
-
-      if(col.etiqueta === 'Entrega'){
-        return d || '';
-      }
-
-      if(col.numerico){
-        return formatoNumero(d);
-      }
-
+      if(col.etiqueta === 'Entrega') return d || '';
+      if(col.numerico) return formatoNumero(d);
       return d || '';
     }
   }));
@@ -534,6 +518,8 @@ function actualizarDashboard(){
   document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
   document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
   document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
+  
+  // Setea el total dinámico al pie de la tabla web
   document.getElementById('totalSumaCantidad').textContent = formatoNumero(totalPares);
 
   const mapC = new Map(); filas.forEach(f=> mapC.set(f['Cliente'], (mapC.get(f['Cliente'])||0)+(f['Cantidad entrega']||0)));
@@ -582,20 +568,41 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
   const cabeceras = CONFIG_COLUMNAS.map(c=>c.etiqueta);
   
-  let suma = 0;
+  let sumaTotalPares = 0;
   const filasDatos = tablaDT.rows({search:'applied'}).data().toArray().map(fila => {
     return CONFIG_COLUMNAS.map(col => {
       let val = fila[col.etiqueta] ?? '';
-      if(col.numerico) { suma += parseFloat(val)||0; return formatoNumero(val); }
+      if(col.numerico) { 
+        sumaTotalPares += parseFloat(val)||0; 
+        return formatoNumero(val); 
+      }
       return String(val);
     });
   });
 
-  doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparation Logística', 40, 35);
+  // Agrega la fila de TOTALES abajo de todo en el cuerpo del PDF
+  const filaTotal = CONFIG_COLUMNAS.map(col => {
+    if(col.etiqueta === 'Entrega') return 'TOTAL GENERAL';
+    if(col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaTotalPares);
+    return '';
+  });
+  filasDatos.push(filaTotal);
+
+  doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparación Logística', 40, 35);
   doc.autoTable({
-    head: [cabeceras], body: filasDatos, startY: 60, margin: { left: 40 },
+    head: [cabeceras], 
+    body: filasDatos, 
+    startY: 60, 
+    margin: { left: 40 },
     styles: { fontSize: 8, halign: 'center' },
     headStyles: { fillColor: [91, 95, 199] },
+    // Estilo especial en negrita para la última fila de totales
+    didParseCell: function (data) {
+      if (data.row.index === filasDatos.length - 1) {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [240, 240, 240];
+      }
+    },
     columnStyles: {
       0: { cellWidth: 80  }, // Entrega
       1: { cellWidth: 140 }, // Cliente
@@ -616,3 +623,4 @@ document.getElementById('btnTema').addEventListener('click', ()=>{
 </script>
 </body>
 </html>
+
