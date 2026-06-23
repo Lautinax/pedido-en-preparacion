@@ -278,7 +278,7 @@
             <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
             <div>
               <div class="kpi-value" id="kpiClientes">0</div>
-              <div class="kpi-label">Clientes Únicos</div>
+              <div class="kpi-label">Solicitantes Únicos</div>
             </div>
           </div>
         </div>
@@ -305,7 +305,7 @@
           </div>
           <div class="col-6 col-lg-2">
             <select id="filtroSolicitante" class="form-select">
-              <option value="">Cliente (todos)</option>
+              <option value="">Solicitante (todos)</option>
             </select>
           </div>
           <div class="col-6 col-lg-3">
@@ -337,7 +337,7 @@
       <div class="row g-3 mb-4">
         <div class="col-12 col-lg-4">
           <div class="card-panel p-3">
-            <div class="fw-semibold mb-2">Top Clientes</div>
+            <div class="fw-semibold mb-2">Top Solicitantes</div>
             <div style="height:200px; position:relative;"><canvas id="chartTopClientes"></canvas></div>
           </div>
         </div>
@@ -396,12 +396,7 @@
       },
       {
         excelAlternatives: ['solicitante', 'solicit.'],
-        etiqueta: 'Cliente',
-        numerico: false
-      },
-      {
-        excelAlternatives: ['referencia cliente', 'ped.clte.'],
-        etiqueta: 'Referencia cliente',
+        etiqueta: 'Solicitante',
         numerico: false
       },
       {
@@ -415,7 +410,12 @@
         numerico: true
       },
       {
-        excelAlternatives: ['flete a cargo de:'],
+        excelAlternatives: ['referencia cliente', 'ped.clte.'],
+        etiqueta: 'Referencia cliente',
+        numerico: false
+      },
+      {
+        excelAlternatives: ['flete a cargo de:', 'flete'],
         etiqueta: 'Flete a cargo de:',
         numerico: false
       }
@@ -503,12 +503,11 @@
       let headHtml = '<tr>';
       let footHtml = '<tr>';
 
-      // Recorrido secuencial estricto columna por columna para evitar desalineaciones
       CONFIG_COLUMNAS.forEach(col => {
         headHtml += `<th>${col.etiqueta}</th>`;
 
         if (col.etiqueta === 'Entrega') {
-          footHtml += `<th>TOTAL</th>`;
+          footHtml += `<th>TOTAL GENERAL</th>`;
         } else if (col.etiqueta === 'Cantidad entrega') {
           footHtml += `<th id="totalSumaCantidad">0</th>`;
         } else {
@@ -564,11 +563,11 @@
     }
 
     function inicializarFiltros() {
-      llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Cliente'));
+      llenarSelect('filtroSolicitante', valoresUnicosPorEtiqueta('Solicitante'));
       llenarSelect('filtroMaterial', valoresUnicosPorEtiqueta('Número de material'));
       llenarSelect('filtroFlete', valoresUnicosPorEtiqueta('Flete a cargo de:'));
 
-      document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Cliente', 'filtroSolicitante');
+      document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
       document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Número de material', 'filtroMaterial');
       document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
 
@@ -593,7 +592,7 @@
 
       const totalFilas = filas.length;
       const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
-      const totalClientes = new Set(filas.map(f => f['Cliente'])).size;
+      const totalClientes = new Set(filas.map(f => f['Solicitante'])).size;
       const totalModelos = new Set(filas.map(f => f['Número de material'])).size;
 
       document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
@@ -601,12 +600,11 @@
       document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
       document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
 
-      // Actualiza dinámicamente la celda correcta de totales del pie en la web
       const txtTotalPares = formatoNumero(totalPares);
       const elTotalWeb = document.getElementById('totalSumaCantidad');
       if (elTotalWeb) elTotalWeb.textContent = txtTotalPares;
 
-      const mapC = new Map(); filas.forEach(f => mapC.set(f['Cliente'], (mapC.get(f['Cliente']) || 0) + (f['Cantidad entrega'] || 0)));
+      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad entrega'] || 0)));
       const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartClientes) chartClientes.destroy();
       chartClientes = new Chart(document.getElementById('chartTopClientes'), {
@@ -630,7 +628,6 @@
       });
     }
 
-    // EXPORTACIONES
     document.getElementById('btnExportExcel').addEventListener('click', () => {
       const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
@@ -664,7 +661,6 @@
         });
       });
 
-      // Agrega la fila de TOTALES al PDF respetando rigurosamente el índice de cada columna
       const filaTotal = CONFIG_COLUMNAS.map(col => {
         if (col.etiqueta === 'Entrega') return 'TOTAL GENERAL';
         if (col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaTotalPares);
@@ -687,12 +683,12 @@
           }
         },
         columnStyles: {
-          0: { cellWidth: 80 }, // Entrega
-          1: { cellWidth: 140 }, // Cliente
-          2: { cellWidth: 120 }, // Referencia cliente
-          3: { cellWidth: 100 }, // Material
-          4: { cellWidth: 60 }, // Cantidad
-          5: { cellWidth: 'auto' }
+          0: { cellWidth: 70 },   // Entrega
+          1: { cellWidth: 140 },  // Solicitante
+          2: { cellWidth: 120 },  // Número de material
+          3: { cellWidth: 70 },   // Cantidad entrega
+          4: { cellWidth: 130 },  // Referencia cliente
+          5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
       doc.save('reporte_entregas.pdf');
@@ -707,3 +703,4 @@
 </body>
 
 </html>
+
