@@ -7,7 +7,7 @@
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dataTables.net-bs5/css/dataTables.bootstrap5.min.css">
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
 
 <style>
 :root{
@@ -336,17 +336,14 @@ table.dataTable.hover tbody tr:hover td{
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
 <script>
-// CONFIGURACIÓN DE FILTRADO CON EXCLUSIÓN DE LA COLUMNA DE REMITOS LOGÍSTICOS
+// CONFIGURACIÓN DE COLUMNAS CON BÚSQUEDA EXCLUSIVA Y ESTRICTA
 const CONFIG_COLUMNAS = [
   { excelAlternatives: ['Solicitante', 'Solicit.'], etiqueta: 'Cliente', numerico: false },
-  { excelAlternatives: ['Referencia cliente', 'Ped.clte.'], etiqueta: 'Referencia cliente', numerico: false },
+  { excelAlternatives: ['Referencia cliente', 'Ped.clte.'], etiqueta: 'Referencia cliente', numerico: false }, // ESTRICTO: Ya no busca "Referencia" a secas
   { excelAlternatives: ['Número de material', 'Material'], etiqueta: 'Número de material', numerico: false },
   { excelAlternatives: ['Cantidad entrega', 'Cantidad'], etiqueta: 'Cantidad entrega', numerico: true },
-  { excelAlternatives: ['Flete a cargo de:健全'], etiqueta: 'Flete a cargo de:', numerico: false }
+  { excelAlternatives: ['Flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
 ];
-
-// Fallback manual por si la etiqueta exacta contiene caracteres parciales
-const FLETE_ESTRICTO_STR = "Flete a cargo de:";
 
 const PALETA = ['#5B5FC7','#00B7C3','#0078D4','#8764B8','#107C10','#C19C00','#D13438','#605E5C','#FF8C00','#038387'];
 
@@ -406,15 +403,15 @@ function procesarArchivo(file){
         CONFIG_COLUMNAS.forEach(col => {
           let index = -1;
           
-          // Buscar correspondencia exacta en las alternativas seguras
+          // Mapeado de concordancia exacta para evitar falsos positivos con subcadenas como "Referencia"
           for(let alt of col.excelAlternatives) {
             index = headersExcel.indexOf(alt);
             if(index !== -1) break;
           }
           
-          // Caso especial para detectar Flete dinámicamente si cambia el sufijo
+          // Búsqueda aproximada inteligente de flete por si varía el sufijo
           if(index === -1 && col.etiqueta === 'Flete a cargo de:') {
-            index = headersExcel.findIndex(h => h.startsWith("Flete a cargo"));
+            index = headersExcel.findIndex(h => h.toLowerCase().startsWith("flete a cargo"));
           }
           
           let valor = index !== -1 ? filaMatriz[index] : '';
@@ -637,7 +634,7 @@ document.getElementById('btnExportCSV').addEventListener('click', ()=>{
   a.click();
 });
 
-// EXPORTACIÓN A PDF HORIZONTAL CON MAQUEO REVISADO DE REFERENCIA CLIENTE
+// EXPORTACIÓN A PDF HORIZONTAL - COLUMNA ESTRICTA CORREGIDA
 document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
@@ -711,7 +708,7 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     },
     columnStyles: {
       0: { cellWidth: 160 },  // Cliente
-      1: { cellWidth: 150 },  // Referencia cliente (Muestra la O.C. / Texto de cliente de SAP)
+      1: { cellWidth: 150 },  // Referencia cliente (Muestra estrictamente la O.C. / Texto de cliente)
       2: { cellWidth: 110 },  // Número de material
       3: { cellWidth: 80, halign: 'center' },   // Cantidad entrega
       4: { cellWidth: 'auto' } // Flete a cargo de
