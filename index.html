@@ -564,12 +564,16 @@ function inicializarTabla(){
 
   // Las columnas mostradas son todas las del Excel, priorizando los 5 campos
   // de negocio principales al inicio (cuando se logran detectar).
-  const prioridad = ['cliente','pedido','oc','modelo','cantidad']
-    .map(c=>columnasMapeadas[c]).filter(Boolean);
-  const resto = columnasHoja.filter(h=> !prioridad.includes(h));
-  const ordenColumnas = [...prioridad, ...resto];
-
-  const columnasDT = ordenColumnas.map(h=>{
+  const ordenColumnas = [
+    'Entrega',
+    'Solicitante',
+    'Material',
+    'Número de material',
+    'Cantidad entrega',
+    'Referencia cliente',
+    'Flete a cargo de:'
+  ];
+  const columnasDT = ordenColumnas.map(h => {
     const esCantidad = (h === columnasMapeadas.cantidad);
     return {
       data: h,
