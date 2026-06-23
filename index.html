@@ -167,29 +167,47 @@
       position: sticky;
       top: 0;
       text-align: center !important;
-}
-table.dataTable tbody td{
-  color:var(--text);
-  border-color:var(--border) !important;
-  background:var(--surface);
-  text-align:center !important;
-}
-table.dataTable tfoot th{
-  background:var(--surface-alt) !important;
-  color:var(--text) !important;
-  font-weight:700;
-  border-top:2px solid var(--border) !important;
-  text-align:center !important;
-}
+    }
 
-.btn-export{
-  border:1px solid var(--border);background:var(--surface-alt);color:var(--text);
-}
-.btn-export:hover{background:var(--primary);color:#fff;border-color:var(--primary);}
+    table.dataTable tbody td {
+      color: var(--text);
+      border-color: var(--border) !important;
+      background: var(--surface);
+      text-align: center !important;
+    }
 
-.empty-state{padding:4rem 1rem;text-align:center;color:var(--text-muted);}
-.empty-state i{font-size:3rem;color:var(--primary);opacity:.6;}
-</style>
+    table.dataTable tfoot th {
+      background: var(--surface-alt) !important;
+      color: var(--text) !important;
+      font-weight: 700;
+      border-top: 2px solid var(--border) !important;
+      text-align: center !important;
+    }
+
+    .btn-export {
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+    }
+
+    .btn-export:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    .empty-state {
+      padding: 4rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    .empty-state i {
+      font-size: 3rem;
+      color: var(--primary);
+      opacity: .6;
+    }
+  </style>
 </head>
 
 <body>
@@ -361,14 +379,14 @@ table.dataTable tfoot th{
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // CONFIGURACIÓN DE COLUMNAS CON IDENTIFICADOR DE SAP CORREGIDO
+    // CONFIGURACIÓN DE COLUMNAS CON CONTROLES MÁS FLEXIBLES
     const CONFIG_COLUMNAS = [
-      { excelAlternatives: ['Entrega', 'Nº entrega', 'Nºentrega'], etiqueta: 'Entrega', numerico: false },
-      { excelAlternatives: ['Solicitante', 'Solicit.'], etiqueta: 'Cliente', numerico: false },
-      { excelAlternatives: ['Referencia cliente', 'Ped.clte.'], etiqueta: 'Referencia cliente', numerico: false },
-      { excelAlternatives: ['Número de material', 'Material'], etiqueta: 'Número de material', numerico: false },
-      { excelAlternatives: ['Cantidad entrega', 'Cantidad'], etiqueta: 'Cantidad entrega', numerico: true },
-      { excelAlternatives: ['Flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
+      { excelAlternatives: ['entrega', 'nº entrega', 'nºentrega'], etiqueta: 'Entrega', numerico: false },
+      { excelAlternatives: ['solicitante', 'solicit.'], etiqueta: 'Cliente', numerico: false },
+      { excelAlternatives: ['referencia cliente', 'ped.clte.'], etiqueta: 'Referencia cliente', numerico: false },
+      { excelAlternatives: ['número de material', 'material'], etiqueta: 'Número de material', numerico: false },
+      { excelAlternatives: ['cantidad entrega', 'cantidad'], etiqueta: 'Cantidad entrega', numerico: true },
+      { excelAlternatives: ['flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
     ];
 
     let datosOriginales = [];
@@ -393,18 +411,20 @@ table.dataTable tfoot th{
 
           if (filasMatriz.length < 2) return alert('El archivo no contiene filas válidas.');
 
-          const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim());
+          // Convertimos los headers a minúsculas para evitar problemas de mayúsculas/minúsculas
+          const headersExcel = filasMatriz[0].map(h => String(h ?? '').trim().toLowerCase());
 
           datosOriginales = filasMatriz.slice(1).map(filaMatriz => {
             const filaObj = {};
             CONFIG_COLUMNAS.forEach(col => {
               let index = -1;
               for (let alt of col.excelAlternatives) {
-                index = headersExcel.indexOf(alt);
+                index = headersExcel.indexOf(alt.toLowerCase());
                 if (index !== -1) break;
               }
+
               if (index === -1 && col.etiqueta === 'Flete a cargo de:') {
-                index = headersExcel.findIndex(h => h.toLowerCase().startsWith("flete a cargo"));
+                index = headersExcel.findIndex(h => h.startsWith("flete a cargo"));
               }
 
               let valor = index !== -1 ? filaMatriz[index] : '';
@@ -585,7 +605,7 @@ table.dataTable tfoot th{
         styles: { fontSize: 8, halign: 'center' },
         headStyles: { fillColor: [91, 95, 199] },
         columnStyles: {
-          0: { cellWidth: 80 }, // Entrega (Nº entrega)
+          0: { cellWidth: 80 }, // Entrega
           1: { cellWidth: 140 }, // Cliente
           2: { cellWidth: 120 }, // Referencia cliente
           3: { cellWidth: 100 }, // Material
