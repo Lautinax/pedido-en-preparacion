@@ -379,14 +379,14 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Mapeo exacto según las columnas reales visibles en tu pantalla
+    // Configuración con búsquedas estrictas para evitar cruces con columnas abreviadas
     const CONFIG_COLUMNAS = [
-      { excelAlternatives: ['entrega'], etiqueta: 'Entrega', numerico: false },
-      { excelAlternatives: ['solicitante'], etiqueta: 'Solicitante', numerico: false },
-      { excelAlternatives: ['numero de material'], etiqueta: 'Número de material', numerico: false },
-      { excelAlternatives: ['cantidad entrega'], etiqueta: 'Cantidad entrega', numerico: true },
-      { excelAlternatives: ['referencia cliente'], etiqueta: 'Referencia cliente', numerico: false },
-      { excelAlternatives: ['flete a cargo de:'], etiqueta: 'Flete a cargo de:', numerico: false }
+      { exactKey: 'entrega', etiqueta: 'Entrega', numerico: false },
+      { exactKey: 'solicitante', etiqueta: 'Solicitante', numerico: false },
+      { exactKey: 'numero de material', etiqueta: 'Número de material', numerico: false },
+      { exactKey: 'cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
+      { exactKey: 'referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
+      { exactKey: 'flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
     ];
 
     let datosOriginales = [];
@@ -401,11 +401,11 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    // Nueva función de normalización que mantiene espacios para que coincida perfecto
-    function limpiarCabecera(t) {
+    // Normaliza el texto quitando tildes y dejando espacios simples estrictos
+    function limpiarTextoEstricto(t) {
       return String(t ?? '').trim().toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Quita acentos
-        .replace(/\s+/g, ' '); // Deja espacios simples normales
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/\s+/g, ' ');
     }
 
     function procesarArchivo(file) {
@@ -418,10 +418,11 @@
 
           if (filasMatriz.length < 1) return alert('El archivo está vacío.');
 
-          // Buscamos dinámicamente en qué fila empiezan tus títulos reales de SAP
+          // Buscar la fila exacta de los títulos de SAP
           let filaEncabezadoIdx = -1;
-          for (let i = 0; i < Math.min(filasMatriz.length, 12); i++) {
-            const filaNorm = filasMatriz[i].map(c => limpiarCabecera(c));
+          for (let i = 0; i < Math.min(filasMatriz.length, 15); i++) {
+            const filaNorm = filasMatriz[i].map(c => limpiarTextoEstricto(c));
+            // Buscamos que tenga "entrega" y "solicitante" de forma exacta en la fila
             if (filaNorm.includes('entrega') && filaNorm.includes('solicitante')) {
               filaEncabezadoIdx = i;
               break;
@@ -430,7 +431,7 @@
 
           if (filaEncabezadoIdx === -1) filaEncabezadoIdx = 0;
 
-          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => limpiarCabecera(h));
+          const headersExcel = filasMatriz[filaEncabezadoIdx].map(h => limpiarTextoEstricto(h));
 
           datosOriginales = filasMatriz.slice(filaEncabezadoIdx + 1)
             .filter(fila => {
@@ -442,12 +443,10 @@
               const filaObj = {};
 
               CONFIG_COLUMNAS.forEach(col => {
-                let index = headersExcel.findIndex(header =>
-                  col.excelAlternatives.some(alt => {
-                    const altNorm = limpiarCabecera(alt);
-                    return header === altNorm || header.includes(altNorm);
-                  })
-                );
+                const objetivo = limpiarTextoEstricto(col.exactKey);
+                
+                // Validación estricta: tiene que ser una igualdad exacta de la cabecera
+                let index = headersExcel.findIndex(header => header === objetivo);
 
                 let valor = index !== -1 ? filaMatriz[index] : '';
 
@@ -459,7 +458,7 @@
               });
               return filaObj;
             })
-            // Aseguramos omitir filas vacías
+            // Descartar registros vacíos
             .filter(f => f['Entrega'] !== '' && f['Entrega'] !== '0' && f['Solicitante'] !== '');
 
           document.getElementById('archivoInfo').classList.remove('d-none');
@@ -665,10 +664,10 @@
         },
         columnStyles: {
           0: { cellWidth: 70 },   // Entrega
-          1: { cellWidth: 100 },  // Solicitante
-          2: { cellWidth: 100 },  // Número de material
+          1: { cellWidth: 130 },  // Solicitante (más ancho para nombres de empresa)
+          2: { cellWidth: 90 },   // Número de material
           3: { cellWidth: 80 },   // Cantidad entrega
-          4: { cellWidth: 120 },  // Referencia cliente
+          4: { cellWidth: 110 },  // Referencia cliente
           5: { cellWidth: 'auto' } // Flete a cargo de:
         }
       });
