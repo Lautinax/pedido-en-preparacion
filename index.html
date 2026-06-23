@@ -379,7 +379,6 @@
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <script>
-    // Estructura de configuración sugerida estricta
     const CONFIG_COLUMNAS = [
       { excel: 'Entrega', etiqueta: 'Entrega', numerico: false },
       { excel: 'Solicitante', etiqueta: 'Solicitante', numerico: false },
@@ -397,9 +396,28 @@
 
     const dropzone = document.getElementById('dropzone');
     const inputArchivo = document.getElementById('inputArchivo');
+    const btnCambiarArchivo = document.getElementById('btnCambiarArchivo');
 
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
+
+    // LÓGICA CORREGIDA: Funcionalidad del botón Cambiar Archivo
+    btnCambiarArchivo.addEventListener('click', () => {
+      inputArchivo.value = ''; // Limpiar el input file
+      datosOriginales = [];
+      
+      // Resetear visualización de paneles
+      document.getElementById('archivoInfo').classList.add('d-none');
+      document.getElementById('zonaCarga').classList.remove('d-none');
+      btnCambiarArchivo.classList.add('d-none');
+      document.getElementById('dashboardContent').classList.add('d-none');
+      document.getElementById('estadoVacio').classList.remove('d-none');
+      
+      if (tablaDT) {
+        tablaDT.clear().destroy();
+        tablaDT = null;
+      }
+    });
 
     function procesarArchivo(file) {
       const lector = new FileReader();
@@ -411,7 +429,6 @@
 
           if (filasMatriz.length < 1) return alert('El archivo está vacío.');
 
-          // Buscar en qué fila se encuentran las cabeceras reales
           let filaEncabezadoIdx = -1;
           for (let i = 0; i < Math.min(filasMatriz.length, 15); i++) {
             const fila = filasMatriz[i];
@@ -423,7 +440,6 @@
 
           if (filaEncabezadoIdx === -1) filaEncabezadoIdx = 0;
 
-          // Tu bloque unificado con coincidencia exacta usando .indexOf()
           const encabezadosOriginales = filasMatriz[filaEncabezadoIdx];
 
           const indiceEntrega = encabezadosOriginales.indexOf('Entrega');
@@ -456,7 +472,7 @@
           document.getElementById('archivoInfo').classList.remove('d-none');
           document.getElementById('nombreArchivo').textContent = `${file.name} (${datosOriginales.length} filas)`;
           document.getElementById('zonaCarga').classList.add('d-none');
-          document.getElementById('btnCambiarArchivo').classList.remove('d-none');
+          btnCambiarArchivo.classList.remove('d-none');
           document.getElementById('estadoVacio').classList.add('d-none');
           document.getElementById('dashboardContent').classList.remove('d-none');
 
