@@ -431,9 +431,18 @@ function procesarArchivo(file){
 }
 
 function inicializarTabla(){
-  if(tablaDT){ tablaDT.destroy(); document.querySelector('#tablaPedidos thead').innerHTML=''; document.querySelector('#tablaPedidos tfoot').innerHTML=''; }
+  // CORRECCIÓN CLAVE DEL BUG: Si ya existe la tabla, se destruye de forma completa y limpia el HTML interno
+  if(tablaDT){ 
+    tablaDT.destroy(); 
+    tablaDT = null;
+  }
+  
+  // Limpiamos los elementos por completo antes de volver a crearlos para que no se dupliquen ni rompan
+  document.querySelector('#tablaPedidos thead').innerHTML = '';
+  document.querySelector('#tablaPedidos tbody').innerHTML = '';
+  document.querySelector('#tablaPedidos tfoot').innerHTML = '';
 
-  // Estructura del tfoot
+  // Volvemos a armar la estructura limpia del tfoot
   const tfoot = document.querySelector('#tablaPedidos tfoot');
   let tfootHtml = '<tr>';
   CONFIG_COLUMNAS.forEach(col => {
@@ -616,7 +625,7 @@ document.getElementById('btnExportCSV').addEventListener('click', ()=>{
   a.click();
 });
 
-// EXPORTACIÓN A PDF CON TOTALES CORREGIDOS
+// EXPORTACIÓN A PDF CON TOTALES GARANTIZADOS
 document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
@@ -635,7 +644,7 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
     });
   });
 
-  // Estructura de pie correcta: Matriz de matrices obligatoria para jsPDF-AutoTable
+  // Matriz de matrices obligatoria para jsPDF-AutoTable
   const filaTotales = [
     CONFIG_COLUMNAS.map(col => {
       if(col.etiqueta === 'Entrega') return 'TOTAL';
@@ -661,7 +670,7 @@ document.getElementById('btnExportPDF').addEventListener('click', ()=>{
   doc.autoTable({
     head: [cabeceras],
     body: filasDatos,
-    foot: filaTotales, // <--- Pasado como matriz doble corregida [ [valores...] ]
+    foot: filaTotales, 
     startY: 75,
     margin: { left: 40, right: 40 },
     styles: { 
