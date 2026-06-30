@@ -401,7 +401,6 @@
     dropzone.addEventListener('click', () => inputArchivo.click());
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
-    // CORRECCIÓN DEFINITIVA: Limpieza segura sin romper la estructura de la tabla
     btnCambiarArchivo.addEventListener('click', () => {
       inputArchivo.value = '';
       datosOriginales = [];
@@ -411,12 +410,10 @@
         tablaDT = null;
       }
 
-      // Limpiar los elementos internos generados por DataTables para dejar el esqueleto limpio
       document.querySelector('#tablaPedidos thead').innerHTML = '';
       document.querySelector('#tablaPedidos tbody').innerHTML = '';
       document.querySelector('#tablaPedidos tfoot').innerHTML = '';
 
-      // Mostrar interfaz de carga de nuevo
       document.getElementById('archivoInfo').classList.add('d-none');
       document.getElementById('zonaCarga').classList.remove('d-none');
       btnCambiarArchivo.classList.add('d-none');
@@ -470,7 +467,8 @@
               'Número de material': String(fila[indiceMaterial] ?? '').trim(),
               'Cantidad entrega': parseFloat(fila[indiceCantidad]) || 0,
               'Referencia cliente': String(fila[indiceReferenciaCliente] ?? '').trim(),
-              'Flete a cargo de:': String(fila[indiceFlete] ?? '').trim()
+              'Flete a cargo de:': String(fila[indiceFlete] ?? '').trim(),
+              '_ocultarRef': false // Propiedad por defecto mapeada como visible
             }))
             .filter(r => r['Entrega']);
 
@@ -515,9 +513,27 @@
       const columnasDT = CONFIG_COLUMNAS.map(col => ({
         data: col.etiqueta,
         className: 'text-center',
-        render: function (d) {
+        render: function (d, type, row, meta) {
           if (col.etiqueta === 'Entrega') return d || '';
           if (col.numerico) return formatoNumero(d);
+          
+          // Lógica con botón de acción para ocultar o volver a mostrar la referencia
+          if (col.etiqueta === 'Referencia cliente') {
+            const estaOculto = row._ocultarRef === true;
+            const textoMostrar = estaOculto ? '*** OCULTO ***' : (d || '');
+            const icono = estaOculto ? 'bi-eye-fill' : 'bi-eye-slash-fill';
+            const claseBoton = estaOculto ? 'btn-outline-secondary' : 'btn-outline-danger';
+            
+            return `
+              <div class="d-flex align-items-center justify-content-center gap-2">
+                <span>${textoMostrar}</span>
+                <button type="button" class="btn btn-sm ${claseBoton} py-0 px-1 btn-ocultar-ref" data-row-idx="${meta.row}" title="Ocultar/Mostrar">
+                  <i class="bi ${icono}"></i>
+                </button>
+              </div>
+            `;
+          }
+          
           return d || '';
         }
       }));
@@ -536,6 +552,14 @@
           lengthMenu: "Mostrar _MENU_ filas",
           paginate: { next: "Siguiente", previous: "Anterior" }
         }
+      });
+
+      // Captura del evento clic en el botón de ocultar
+      $('#tablaPedidos tbody').off('click', '.btn-ocultar-ref').on('click', '.btn-ocultar-ref', function () {
+        const idx = $(this).data('row-idx');
+        const filaDatos = tablaDT.row(idx).data();
+        filaDatos._ocultarRef = !filaDatos._ocultarRef;
+        tablaDT.row(idx).data(filaDatos).draw('page');
       });
 
       tablaDT.on('draw', actualizarDashboard);
@@ -646,6 +670,12 @@
       const filasDatos = tablaDT.rows({ search: 'applied' }).data().toArray().map(fila => {
         return CONFIG_COLUMNAS.map(col => {
           let val = fila[col.etiqueta] ?? '';
+          
+          // Validación del estado de visualización para la referencia del cliente
+          if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) {
+            return '*** OCULTO ***';
+          }
+          
           if (col.numerico) {
             sumaTotalPares += parseFloat(val) || 0;
             return formatoNumero(val);
@@ -661,7 +691,7 @@
       });
       filasDatos.push(filaTotal);
 
-      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparation Logística', 40, 35);
+      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparación Logística', 40, 35);
       doc.autoTable({
         head: [cabeceras],
         body: filasDatos,
