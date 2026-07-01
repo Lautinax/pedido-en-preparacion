@@ -325,8 +325,8 @@
           </div>
         </div>
         <div class="d-flex flex-wrap gap-2 mt-3">
-          <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar
-            Excel</button>
+          <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
+          <button id="btnCopiarExcel" class="btn btn-sm btn-success text-white"><i class="bi bi-clipboard-check"></i> Copiar Cuadro (Excel)</button>
           <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar
             CSV</button>
           <button id="btnExportPDF" class="btn btn-sm btn-export text-white" style="background: var(--primary)"><i
@@ -645,12 +645,97 @@
       });
     }
 
-    document.getElementById('btnExportExcel').addEventListener('click', () => {
-      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
+
+    function generarHtmlCuadroStyled() {
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
-      const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
-      const libro = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(libro, hoja, 'Cuadro');
-      XLSX.writeFile(libro, 'cuadro_entregas.xlsx');
+      
+      let html = `<table style="border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; width: 100%; border: 1px solid #C8C6C4;">`;
+      
+      // Header
+      html += '<thead style="background-color: #0F2537; color: #FFFFFF; font-weight: bold; text-align: center;"><tr>';
+      CONFIG_COLUMNAS.forEach(col => {
+        html += `<th style="border: 1px solid #3B3A39; padding: 8px 12px; text-align: center; font-weight: bold;">${col.etiqueta}</th>`;
+      });
+      html += '</tr></thead>';
+      
+      // Body
+      html += '<tbody>';
+      let sumaTotalPares = 0;
+      filas.forEach((fila, idx) => {
+        const bgRow = idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA';
+        html += `<tr style="background-color: ${bgRow};">`;
+        CONFIG_COLUMNAS.forEach(col => {
+          let val = fila[col.etiqueta] ?? '';
+          if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) {
+            val = '*** OCULTO ***';
+          }
+          
+          let displayVal = val;
+          let textAlign = 'center';
+          
+          if (col.numerico) {
+            const num = parseFloat(val) || 0;
+            sumaTotalPares += num;
+            displayVal = num.toLocaleString('es-AR');
+            textAlign = 'center';
+          }
+          
+          html += `<td style="border: 1px solid #E1DFDD; padding: 6px 12px; text-align: ${textAlign}; color: #201F1E;">${displayVal}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</tbody>';
+      
+      // Footer / Totales
+      html += '<tfoot style="background-color: #F3F2F1; font-weight: bold; text-align: center;"><tr>';
+      CONFIG_COLUMNAS.forEach(col => {
+        if (col.etiqueta === 'Entrega') {
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px; text-align: center; font-weight: bold; text-transform: uppercase;">TOTALES</td>`;
+        } else if (col.etiqueta === 'Cantidad entrega') {
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px; text-align: center; font-weight: bold;">${sumaTotalPares.toLocaleString('es-AR')}</td>`;
+        } else {
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px;"></td>`;
+        }
+      });
+      html += '</tr></tfoot>';
+      html += '</table>';
+      return html;
+    }
+
+    document.getElementById('btnExportExcel').addEventListener('click', () => {
+      const htmlCuadro = generarHtmlCuadroStyled();
+      const blob = new Blob(['\uFEFF' + htmlCuadro], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'cuadro_entregas_estilizado.xls';
+      a.click();
+    });
+
+    document.getElementById('btnCopiarExcel').addEventListener('click', function() {
+      const htmlCuadro = generarHtmlCuadroStyled();
+      
+      const blobHtml = new Blob([htmlCuadro], { type: 'text/html' });
+      const blobText = new Blob([tablaDT.rows({ search: 'applied' }).data().toArray().map(f => CONFIG_COLUMNAS.map(c => f[c.etiqueta]).join('\t')).join('\n')], { type: 'text/plain' });
+      
+      if (navigator.clipboard && navigator.clipboard.write) {
+        const item = new ClipboardItem({
+          'text/html': blobHtml,
+          'text/plain': blobText
+        });
+        navigator.clipboard.write([item]).then(() => {
+          const originalText = this.innerHTML;
+          this.innerHTML = '<i class="bi bi-check2-all"></i> ¡Copiado!';
+          this.classList.remove('btn-success');
+          this.classList.add('btn-primary');
+          setTimeout(() => {
+            this.innerHTML = originalText;
+            this.classList.remove('btn-primary');
+            this.classList.add('btn-success');
+          }, 2000);
+        }).catch(err => alert('No se pudo copiar el cuadro de forma automática.'));
+      } else {
+        alert('Tu navegador no soporta esta funcionalidad avanzada de copiado.');
+      }
     });
 
     document.getElementById('btnExportCSV').addEventListener('click', () => {
@@ -671,7 +756,6 @@
         return CONFIG_COLUMNAS.map(col => {
           let val = fila[col.etiqueta] ?? '';
           
-          // Validación del estado de visualización para la referencia del cliente
           if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) {
             return '';
           }
