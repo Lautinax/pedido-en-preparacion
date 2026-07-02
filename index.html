@@ -308,7 +308,7 @@
               <option value="">Solicitante (todos)</option>
             </select>
           </div>
-          <div class="col-6 col-lg-3">
+          <div class="col-6 col-lg-2">
             <select id="filtroMaterial" class="form-select">
               <option value="">Número de material (todos)</option>
             </select>
@@ -319,7 +319,7 @@
               <option value="__VACIOS__">Vacíos (sin flete)</option>
             </select>
           </div>
-          <div class="col-12 col-lg-2 text-end">
+          <div class="col-12 col-lg-3 text-end">
             <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100">
               <i class="bi bi-eraser"></i> Limpiar
             </button>
@@ -380,6 +380,7 @@
   <script>
     const CONFIG_COLUMNAS = [
       { excel: 'Entrega', etiqueta: 'Entrega', numerico: false },
+      { excel: 'Pedido', etiqueta: 'Pedido', numerico: false },
       { excel: 'Solicitante', etiqueta: 'Solicitante', numerico: false },
       { excel: 'Número de material', etiqueta: 'Número de material', numerico: false },
       { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
@@ -444,6 +445,7 @@
           const encabezadosOriginales = filasMatriz[filaEncabezadoIdx];
 
           const indiceEntrega = encabezadosOriginales.indexOf('Entrega');
+          const indicePedido = encabezadosOriginales.indexOf('Pedido');
           const indiceSolicitante = encabezadosOriginales.indexOf('Solicitante');
           const indiceMaterial = encabezadosOriginales.indexOf('Número de material');
           const indiceCantidad = encabezadosOriginales.indexOf('Cantidad entrega');
@@ -462,6 +464,7 @@
             })
             .map(fila => ({
               'Entrega': fila[indiceEntrega] == null ? '' : String(fila[indiceEntrega]),
+              'Pedido': fila[indicePedido] == null ? '' : String(fila[indicePedido]),
               'Solicitante': String(fila[indiceSolicitante] ?? '').trim(),
               'Número de material': String(fila[indiceMaterial] ?? '').trim(),
               'Cantidad entrega': parseFloat(fila[indiceCantidad]) || 0,
@@ -513,7 +516,7 @@
         data: col.etiqueta,
         className: 'text-center',
         render: function (d, type, row, meta) {
-          if (col.etiqueta === 'Entrega') return d || '';
+          if (col.etiqueta === 'Entrega' || col.etiqueta === 'Pedido') return d || '';
           if (col.numerico) return formatoNumero(d);
           
           if (col.etiqueta === 'Referencia cliente') {
@@ -597,7 +600,6 @@
       const val = document.getElementById(idSelect).value;
       
       if (etiqueta === 'Flete a cargo de:' && val === '__VACIOS__') {
-        // Expresión regular para buscar celdas vacías o que solo tengan espacios
         tablaDT.column(idx).search('^$', true, false).draw();
       } else {
         const escapado = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -647,21 +649,16 @@
       });
     }
 
-    // FUNCIÓN GENERADORA DEL CUADRO ESTILIZADO PROFESIONAL
     function generarHtmlCuadroStyled() {
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
       
       let html = `<table style="border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; width: 100%; border: 1px solid #C8C6C4;">`;
-      
-      // Encabezados Oscuros Elegantes
       html += '<thead style="background-color: #0F2537; color: #FFFFFF; font-weight: bold; text-align: center;"><tr>';
       CONFIG_COLUMNAS.forEach(col => {
         html += `<th style="border: 1px solid #3B3A39; padding: 8px 12px; text-align: center; font-weight: bold;">${col.etiqueta}</th>`;
       });
-      html += '</tr></thead>';
+      html += '</tr></thead><tbody>';
       
-      // Filas de Datos Alternadas (Sombreado Sutil)
-      html += '<tbody>';
       let sumaTotalPares = 0;
       filas.forEach((fila, idx) => {
         const bgRow = idx % 2 === 0 ? '#FFFFFF' : '#FAFAFA';
@@ -673,22 +670,18 @@
           }
           
           let displayVal = val;
-          let textAlign = 'center';
-          
           if (col.numerico) {
             const num = parseFloat(val) || 0;
             sumaTotalPares += num;
             displayVal = num.toLocaleString('es-AR');
           }
           
-          html += `<td style="border: 1px solid #E1DFDD; padding: 6px 12px; text-align: ${textAlign}; color: #201F1E;">${displayVal}</td>`;
+          html += `<td style="border: 1px solid #E1DFDD; padding: 6px 12px; text-align: center; color: #201F1E;">${displayVal}</td>`;
         });
         html += '</tr>';
       });
-      html += '</tbody>';
+      html += '</tbody><tfoot style="background-color: #F3F2F1; font-weight: bold; text-align: center;"><tr>';
       
-      // Fila de Totales en Negrita Resaltada al Final
-      html += '<tfoot style="background-color: #F3F2F1; font-weight: bold; text-align: center;"><tr>';
       CONFIG_COLUMNAS.forEach(col => {
         if (col.etiqueta === 'Entrega') {
           html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px; text-align: center; font-weight: bold; text-transform: uppercase;">TOTALES</td>`;
@@ -698,12 +691,10 @@
           html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px;"></td>`;
         }
       });
-      html += '</tr></tfoot>';
-      html += '</table>';
+      html += '</tr></tfoot></table>';
       return html;
     }
 
-    // Exportar archivo ya formateado como cuadro
     document.getElementById('btnExportExcel').addEventListener('click', () => {
       const htmlCuadro = generarHtmlCuadroStyled();
       const blob = new Blob(['\uFEFF' + htmlCuadro], { type: 'application/vnd.ms-excel;charset=utf-8;' });
@@ -713,31 +704,24 @@
       a.click();
     });
 
-    // Copiar cuadro enriquecido directamente para pegar en Excel, Gmail o WhatsApp
     document.getElementById('btnCopiarExcel').addEventListener('click', function() {
       const htmlCuadro = generarHtmlCuadroStyled();
-      
       const blobHtml = new Blob([htmlCuadro], { type: 'text/html' });
       const blobText = new Blob([tablaDT.rows({ search: 'applied' }).data().toArray().map(f => CONFIG_COLUMNAS.map(c => f[c.etiqueta]).join('\t')).join('\n')], { type: 'text/plain' });
       
       if (navigator.clipboard && navigator.clipboard.write) {
-        const item = new ClipboardItem({
-          'text/html': blobHtml,
-          'text/plain': blobText
-        });
+        const item = new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText });
         navigator.clipboard.write([item]).then(() => {
           const originalText = this.innerHTML;
           this.innerHTML = '<i class="bi bi-check2-all"></i> ¡Copiado!';
-          this.classList.remove('btn-success');
-          this.classList.add('btn-primary');
+          this.classList.remove('btn-success'); this.classList.add('btn-primary');
           setTimeout(() => {
             this.innerHTML = originalText;
-            this.classList.remove('btn-primary');
-            this.classList.add('btn-success');
+            this.classList.remove('btn-primary'); this.classList.add('btn-success');
           }, 2000);
-        }).catch(err => alert('No se pudo copiar el cuadro de forma automática.'));
+        }).catch(err => alert('No se pudo copiar el cuadro.'));
       } else {
-        alert('Tu navegador no soporta esta funcionalidad avanzada de copiado.');
+        alert('Tu navegador no soporta esta funcionalidad.');
       }
     });
 
@@ -789,12 +773,13 @@
           }
         },
         columnStyles: {
-          0: { cellWidth: 70 },
-          1: { cellWidth: 140 },
-          2: { cellWidth: 110 },
-          3: { cellWidth: 70 },
-          4: { cellWidth: 120 },
-          5: { cellWidth: 'auto' }
+          0: { cellWidth: 60 }, // Entrega
+          1: { cellWidth: 60 }, // Pedido
+          2: { cellWidth: 120 }, // Solicitante
+          3: { cellWidth: 90 }, // Número de material
+          4: { cellWidth: 60 }, // Cantidad entrega
+          5: { cellWidth: 110 }, // Referencia cliente
+          6: { cellWidth: 'auto' } // Flete
         }
       });
       doc.save('reporte_entregas.pdf');
