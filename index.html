@@ -316,6 +316,7 @@
           <div class="col-6 col-lg-2">
             <select id="filtroFlete" class="form-select">
               <option value="">Flete (todos)</option>
+              <option value="__VACIOS__">Vacíos (sin flete)</option>
             </select>
           </div>
           <div class="col-12 col-lg-2 text-end">
@@ -567,7 +568,7 @@
 
     function llenarSelect(id, valores) {
       const select = document.getElementById(id);
-      select.querySelectorAll('option:not(:first-child)').forEach(o => o.remove());
+      select.querySelectorAll('option:not(:first-child):not([value="__VACIOS__"])').forEach(o => o.remove());
       valores.forEach(v => {
         const opt = document.createElement('option'); opt.value = v; opt.textContent = v;
         select.appendChild(opt);
@@ -594,8 +595,14 @@
     function aplicarFiltroColumna(etiqueta, idSelect) {
       let idx = CONFIG_COLUMNAS.findIndex(c => c.etiqueta === etiqueta);
       const val = document.getElementById(idSelect).value;
-      const escapado = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      tablaDT.column(idx).search(val ? `^${escapado}$` : '', true, false).draw();
+      
+      if (etiqueta === 'Flete a cargo de:' && val === '__VACIOS__') {
+        // Expresión regular para buscar celdas vacías o que solo tengan espacios
+        tablaDT.column(idx).search('^$', true, false).draw();
+      } else {
+        const escapado = val.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        tablaDT.column(idx).search(val ? `^${escapado}$` : '', true, false).draw();
+      }
     }
 
     function actualizarDashboard() {
