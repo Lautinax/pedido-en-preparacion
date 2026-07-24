@@ -30,17 +30,17 @@
     }
 
     html[data-theme="dark"] {
-      --bg: #1B1A19;
-      --surface: #252423;
-      --surface-alt: #2D2C2B;
-      --text: #F3F2F1;
-      --text-muted: #C8C6C4;
-      --border: #3B3A39;
-      --primary: #8B8FE0;
-      --primary-dark: #6A6FCB;
+      --bg: #121110;
+      --surface: #1E1D1C;
+      --surface-alt: #282726;
+      --text: #FFFFFF;
+      --text-muted: #E1DFDD;
+      --border: #484644;
+      --primary: #999CE2;
+      --primary-dark: #7A7ECF;
       --accent: #34D6E0;
-      --shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
-      --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.55);
+      --shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+      --shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.7);
     }
 
     * {
@@ -131,6 +131,7 @@
       font-size: 1.6rem;
       font-weight: 700;
       line-height: 1.1;
+      color: var(--text);
     }
 
     .kpi-label {
@@ -143,7 +144,7 @@
     .section-title {
       font-size: .95rem;
       font-weight: 600;
-      color: var(--text-muted);
+      color: var(--text);
       text-transform: uppercase;
       letter-spacing: .04em;
       margin-bottom: .6rem;
@@ -154,6 +155,16 @@
       background: var(--surface-alt);
       border: 1px solid var(--border);
       color: var(--text);
+    }
+
+    .filters-bar .form-select option {
+      background: var(--surface);
+      color: var(--text);
+    }
+
+    .filters-bar .form-control::placeholder {
+      color: var(--text-muted);
+      opacity: 0.8;
     }
 
     #tabla-card {
@@ -205,7 +216,7 @@
     .empty-state i {
       font-size: 3rem;
       color: var(--primary);
-      opacity: .6;
+      opacity: .8;
     }
   </style>
 </head>
@@ -298,7 +309,7 @@
         <div class="row g-2 align-items-center">
           <div class="col-12 col-lg-3">
             <div class="input-group">
-              <span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search"></i></span>
+              <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
               <input type="text" id="buscarGlobal" class="form-control border-start-0"
                 placeholder="Buscar en el cuadro...">
             </div>
@@ -629,7 +640,7 @@
       const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartClientes) chartClientes.destroy();
       chartClientes = new Chart(document.getElementById('chartTopClientes'), {
-        type: 'bar', data: { labels: topC.map(c => c[0].substring(0, 12)), datasets: [{ data: topC.map(c => c[1]), backgroundColor: '#5B5FC7' }] },
+        type: 'bar', data: { labels: topC.map(c => c[0].substring(0, 12)), datasets: [{ data: topC.map(c => c[1]), backgroundColor: '#999CE2' }] },
         options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
@@ -637,14 +648,14 @@
       const topM = [...mapM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
       if (chartModelos) chartModelos.destroy();
       chartModelos = new Chart(document.getElementById('chartTopModelos'), {
-        type: 'bar', data: { labels: topM.map(m => m[0]), datasets: [{ data: topM.map(m => m[1]), backgroundColor: '#00B7C3' }] },
+        type: 'bar', data: { labels: topM.map(m => m[0]), datasets: [{ data: topM.map(m => m[1]), backgroundColor: '#34D6E0' }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
       });
 
       const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad entrega'] || 0)));
       if (chartDistribucion) chartDistribucion.destroy();
       chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
-        type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#8764B8'] }] },
+        type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#999CE2', '#34D6E0', '#A67CD8'] }] },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } } }
       });
     }
@@ -773,13 +784,13 @@
           }
         },
         columnStyles: {
-          0: { cellWidth: 60 }, // Entrega
-          1: { cellWidth: 60 }, // Pedido
-          2: { cellWidth: 120 }, // Solicitante
-          3: { cellWidth: 90 }, // Número de material
-          4: { cellWidth: 60 }, // Cantidad entrega
-          5: { cellWidth: 110 }, // Referencia cliente
-          6: { cellWidth: 'auto' } // Flete
+          0: { cellWidth: 60 },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 120 },
+          3: { cellWidth: 90 },
+          4: { cellWidth: 60 },
+          5: { cellWidth: 110 },
+          6: { cellWidth: 'auto' }
         }
       });
       doc.save('reporte_entregas.pdf');
