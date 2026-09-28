@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Entregas</title>
+  <title>Panel de Entregas y Distribución Logística</title>
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.11/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.11/css/dataTables.bootstrap5.min.css">
 
   <style>
     :root {
@@ -108,34 +108,41 @@
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
-      padding: 1.1rem 1.3rem;
+      padding: 1rem 1.1rem;
       display: flex;
       align-items: center;
       gap: 1rem;
       height: 100%;
+      cursor: pointer;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-hover);
     }
 
     .kpi-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 14px;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.4rem;
+      font-size: 1.3rem;
       color: #fff;
       flex-shrink: 0;
     }
 
     .kpi-value {
-      font-size: 1.6rem;
+      font-size: 1.45rem;
       font-weight: 700;
       line-height: 1.1;
       color: var(--text);
     }
 
     .kpi-label {
-      font-size: .78rem;
+      font-size: .75rem;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: .04em;
@@ -178,6 +185,7 @@
       position: sticky;
       top: 0;
       text-align: center !important;
+      z-index: 2;
     }
 
     table.dataTable tbody td {
@@ -185,6 +193,7 @@
       border-color: var(--border) !important;
       background: var(--surface);
       text-align: center !important;
+      vertical-align: middle;
     }
 
     table.dataTable tfoot th {
@@ -194,6 +203,16 @@
       border-top: 2px solid var(--border) !important;
       text-align: center !important;
     }
+
+    /* Colores de filas por antigüedad */
+    tr.row-estado-normal tbody td { background-color: var(--surface) !important; }
+    tr.row-estado-demorado { background-color: rgba(193, 156, 0, 0.08) !important; }
+    tr.row-estado-critico { background-color: rgba(209, 52, 56, 0.08) !important; }
+    tr.row-estado-muy-critico { background-color: rgba(209, 52, 56, 0.16) !important; }
+
+    html[data-theme="dark"] tr.row-estado-demorado { background-color: rgba(193, 156, 0, 0.15) !important; }
+    html[data-theme="dark"] tr.row-estado-critico { background-color: rgba(209, 52, 56, 0.22) !important; }
+    html[data-theme="dark"] tr.row-estado-muy-critico { background-color: rgba(209, 52, 56, 0.35) !important; }
 
     .btn-export {
       border: 1px solid var(--border);
@@ -218,6 +237,23 @@
       color: var(--primary);
       opacity: .8;
     }
+
+    .badge-estado {
+      font-size: 0.72rem;
+      padding: 0.35em 0.65em;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .prioridad-item {
+      border-left: 4px solid var(--danger);
+      background: var(--surface-alt);
+      transition: background .15s ease;
+      cursor: pointer;
+    }
+    .prioridad-item:hover {
+      background: rgba(209, 52, 56, 0.06);
+    }
   </style>
 </head>
 
@@ -228,7 +264,7 @@
       <div class="brand-icon"><i class="bi bi-truck"></i></div>
       <div>
         <div class="fw-bold fs-5">Panel de Entregas y Distribución</div>
-        <div class="small opacity-75">Control logístico de preparación de materiales</div>
+        <div class="small opacity-75">Control logístico y gestión avanzada de vencimientos SAP</div>
       </div>
     </div>
     <div class="d-flex align-items-center gap-2">
@@ -243,6 +279,7 @@
 
   <div class="container-fluid px-3 px-md-4 py-4">
 
+    <!-- ZONA DE CARGA -->
     <div id="zonaCarga" class="card-panel p-3 mb-4">
       <div id="dropzone" class="dropzone">
         <i class="bi bi-file-earmark-spreadsheet d-block mb-2"></i>
@@ -256,116 +293,217 @@
       </div>
     </div>
 
+    <!-- ESTADO VACÍO -->
     <div id="estadoVacio" class="empty-state">
       <i class="bi bi-clipboard-data d-block mb-2"></i>
       <div class="fs-5 fw-semibold">Todavía no cargaste el archivo de entregas</div>
-      <div>Subí tu Excel para ver los cuadros resumidos filtrados y preparar tus PDFs.</div>
+      <div>Subí tu Excel para ver los cuadros resumidos, alertas de vencimiento y preparar tus reportes.</div>
     </div>
 
+    <!-- CONTENIDO DEL DASHBOARD -->
     <div id="dashboardContent" class="d-none">
 
-      <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores generales</div>
+      <!-- ALERTA DE CARGA INICIAL -->
+      <div id="bannerAlertaCarga" class="alert d-flex align-items-center justify-content-between mb-4 shadow-sm" role="alert" style="display: none;">
+        <div class="d-flex align-items-center gap-3">
+          <i id="iconoBannerAlerta" class="bi fs-3"></i>
+          <div>
+            <h5 id="tituloBannerAlerta" class="alert-heading fw-bold mb-1"></h5>
+            <p id="textoBannerAlerta" class="mb-0 small"></p>
+          </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+      </div>
+
+      <!-- SECCIÓN 1: INDICADORES GENERALES -->
+      <div class="section-title"><i class="bi bi-speedometer2"></i> Indicadores Generales</div>
       <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="kpi-card" onclick="resetearFiltrosParciales()">
             <div class="kpi-icon" style="background:var(--primary);"><i class="bi bi-hash"></i></div>
             <div>
               <div class="kpi-value" id="kpiPedidos">0</div>
-              <div class="kpi-label">Total de Filas</div>
+              <div class="kpi-label">Total Filas</div>
             </div>
           </div>
         </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="kpi-card" onclick="resetearFiltrosParciales()">
             <div class="kpi-icon" style="background:var(--accent);"><i class="bi bi-box-seam"></i></div>
             <div>
               <div class="kpi-value" id="kpiPares">0</div>
-              <div class="kpi-label">Cantidad Entrega Total</div>
+              <div class="kpi-label">Pares Totales</div>
             </div>
           </div>
         </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="kpi-card" onclick="resetearFiltrosParciales()">
             <div class="kpi-icon" style="background:var(--success);"><i class="bi bi-people"></i></div>
             <div>
               <div class="kpi-value" id="kpiClientes">0</div>
-              <div class="kpi-label">Solicitantes Únicos</div>
+              <div class="kpi-label">Solicitantes</div>
             </div>
           </div>
         </div>
-        <div class="col-6 col-lg-3">
-          <div class="kpi-card">
-            <div class="kpi-icon" style="background:var(--warning);"><i class="bi bi-tags"></i></div>
+        <div class="col-6 col-md-4 col-xl-2">
+          <div class="kpi-card" onclick="filtrarPorEstadoRapido('vencidos_total')">
+            <div class="kpi-icon" style="background:var(--danger);"><i class="bi bi-exclamation-triangle"></i></div>
             <div>
-              <div class="kpi-value" id="kpiModelos">0</div>
-              <div class="kpi-label">Materiales Distintos</div>
+              <div class="kpi-value text-danger" id="kpiParesVencidos">0</div>
+              <div class="kpi-label">Pares Vencidos</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-12 col-md-8 col-xl-4">
+          <div class="kpi-card border-danger" onclick="filtrarPorAntiguedadMaxima()">
+            <div class="kpi-icon" style="background: #a82024;"><i class="bi bi-clock-history"></i></div>
+            <div class="overflow-hidden">
+              <div class="kpi-value text-truncate" id="kpiAntiguedadMax" style="font-size: 1.3rem;">0 días</div>
+              <div class="kpi-label text-truncate" id="kpiAntiguedadMaxCliente">Sin registros</div>
             </div>
           </div>
         </div>
       </div>
 
-      <div class="card-panel p-3 mb-4 filters-bar">
-        <div class="section-title mb-3"><i class="bi bi-funnel"></i> Filtros de búsqueda rápida</div>
-        <div class="row g-2 align-items-center">
-          <div class="col-12 col-lg-3">
-            <div class="input-group">
-              <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
-              <input type="text" id="buscarGlobal" class="form-control border-start-0"
-                placeholder="Buscar en el cuadro...">
+      <!-- SECCIÓN 2: CONTROL DE VENCIMIENTOS (PANEL SUPERIOR) -->
+      <div class="section-title"><i class="bi bi-shield-exclamation"></i> Control de Vencimientos y Antigüedad</div>
+      <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+          <div class="kpi-card" style="border-left: 4px solid var(--success);" onclick="filtrarPorEstadoRapido('normal')">
+            <div class="kpi-icon" style="background: var(--success);"><i class="bi bi-check-circle"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiCountNormal">0</div>
+              <div class="kpi-label">En Plazo (0-3 días)</div>
             </div>
           </div>
-          <div class="col-6 col-lg-2">
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="kpi-card" style="border-left: 4px solid var(--warning);" onclick="filtrarPorEstadoRapido('demorado')">
+            <div class="kpi-icon" style="background: var(--warning);"><i class="bi bi-hourglass-split"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiCountDemorado">0</div>
+              <div class="kpi-label">Demorados (4-7 días)</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="kpi-card" style="border-left: 4px solid #fd7e14;" onclick="filtrarPorEstadoRapido('critico')">
+            <div class="kpi-icon" style="background: #fd7e14;"><i class="bi bi-exclamation-circle"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiCountCritico">0</div>
+              <div class="kpi-label">Críticos (8-14 días)</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-xl-3">
+          <div class="kpi-card" style="border-left: 4px solid var(--danger);" onclick="filtrarPorEstadoRapido('muy_critico')">
+            <div class="kpi-icon" style="background: var(--danger);"><i class="bi bi-radioactive"></i></div>
+            <div>
+              <div class="kpi-value" id="kpiCountMuyCritico">0</div>
+              <div class="kpi-label">Muy Críticos (+14 días)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECCIÓN 3: ACCESOS RÁPIDOS Y FILTROS -->
+      <div class="card-panel p-3 mb-4 filters-bar">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+          <div class="section-title mb-0"><i class="bi bi-funnel"></i> Filtros de búsqueda rápida y control</div>
+          <div class="d-flex flex-wrap gap-2">
+            <button id="btnVerSoloVencidos" class="btn btn-sm btn-danger fw-semibold">
+              <i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Ver Solo Vencidos (<span id="txtCountVencidosBtn">0</span>)
+            </button>
+            <button id="btnAgrupadoCliente" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalAgrupadoCliente">
+              <i class="bi bi-people-fill"></i> Agrupado por Cliente
+            </button>
+          </div>
+        </div>
+
+        <div class="row g-2 align-items-center">
+          <div class="col-12 col-md-3">
+            <div class="input-group">
+              <span class="input-group-text bg-transparent border-end-0 text-muted"><i class="bi bi-search"></i></span>
+              <input type="text" id="buscarGlobal" class="form-control border-start-0" placeholder="Buscar en el cuadro...">
+            </div>
+          </div>
+          <div class="col-6 col-md-2">
             <select id="filtroSolicitante" class="form-select">
               <option value="">Solicitante (todos)</option>
             </select>
           </div>
-          <div class="col-6 col-lg-2">
+          <div class="col-6 col-md-2">
             <select id="filtroMaterial" class="form-select">
-              <option value="">Número de material (todos)</option>
+              <option value="">Material (todos)</option>
             </select>
           </div>
-          <div class="col-6 col-lg-2">
+          <div class="col-6 col-md-2">
             <select id="filtroFlete" class="form-select">
               <option value="">Flete (todos)</option>
               <option value="__VACIOS__">Vacíos (sin flete)</option>
             </select>
           </div>
-          <div class="col-12 col-lg-3 text-end">
-            <button id="btnLimpiarFiltros" class="btn btn-outline-secondary w-100">
-              <i class="bi bi-eraser"></i> Limpiar
+          <div class="col-6 col-md-3">
+            <select id="filtroEstadoAntiguedad" class="form-select">
+              <option value="">Estado de entrega (todos)</option>
+              <option value="normal">En plazo (0-3 días)</option>
+              <option value="demorado">Demorado (4-7 días)</option>
+              <option value="critico">Crítico (8-14 días)</option>
+              <option value="muy_critico">Muy crítico (+14 días)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- BARRA DE FILTROS ACTIVOS & RESET -->
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3 pt-2 border-top">
+          <div id="contenedorFiltrosActivos" class="d-flex flex-wrap align-items-center gap-2 small text-muted">
+            <span class="fw-semibold">Filtros activos:</span> <span class="badge bg-secondary">Ninguno</span>
+          </div>
+          <div>
+            <button id="btnRestablecerTodo" class="btn btn-sm btn-outline-secondary">
+              <i class="bi bi-arrow-counterclockwise"></i> Restablecer Todo
             </button>
           </div>
         </div>
-        <div class="d-flex flex-wrap gap-2 mt-3">
+
+        <!-- BOTONES DE EXPORTACIÓN -->
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
           <button id="btnExportExcel" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-excel"></i> Exportar Excel</button>
           <button id="btnCopiarExcel" class="btn btn-sm btn-success text-white"><i class="bi bi-clipboard-check"></i> Copiar Cuadro (Excel)</button>
           <button id="btnExportCSV" class="btn btn-sm btn-export"><i class="bi bi-file-earmark-text"></i> Exportar CSV</button>
-          <button id="btnExportPDF" class="btn btn-sm btn-export text-white" style="background: var(--primary)"><i class="bi bi-file-earmark-pdf"></i> Exportar a PDF Horizontal</button>
+          <button id="btnExportPDF" class="btn btn-sm btn-export text-white" style="background: var(--primary)"><i class="bi bi-file-earmark-pdf"></i> Exportar PDF Horizontal</button>
         </div>
       </div>
 
+      <!-- SECCIÓN 4: GRÁFICOS Y PRIORIDADES -->
       <div class="row g-3 mb-4">
-        <div class="col-12 col-lg-4">
-          <div class="card-panel p-3">
-            <div class="fw-semibold mb-2">Top Solicitantes</div>
-            <div style="height:200px; position:relative;"><canvas id="chartTopClientes"></canvas></div>
+        <div class="col-12 col-xl-4">
+          <div class="card-panel p-3 h-100">
+            <div class="fw-semibold mb-2"><i class="bi bi-bar-chart-fill"></i> Distribución por Antigüedad (Pares)</div>
+            <div style="height:220px; position:relative;"><canvas id="chartAntiguedadPares"></canvas></div>
           </div>
         </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel p-3">
-            <div class="fw-semibold mb-2">Top Materiales</div>
-            <div style="height:200px; position:relative;"><canvas id="chartTopModelos"></canvas></div>
+        <div class="col-12 col-xl-4">
+          <div class="card-panel p-3 h-100">
+            <div class="fw-semibold mb-2"><i class="bi bi-pie-chart-fill"></i> Fletes</div>
+            <div style="height:220px; position:relative;"><canvas id="chartDistribucion"></canvas></div>
           </div>
         </div>
-        <div class="col-12 col-lg-4">
-          <div class="card-panel p-3">
-            <div class="fw-semibold mb-2">Fletes</div>
-            <div style="height:200px; position:relative;"><canvas id="chartDistribucion"></canvas></div>
+        <div class="col-12 col-xl-4">
+          <div class="card-panel p-3 h-100">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="fw-semibold text-danger"><i class="bi bi-fire"></i> Prioridades de Atención</div>
+              <span class="badge bg-danger-subtle text-danger small">Top 5 Críticos</span>
+            </div>
+            <div id="listaPrioridades" class="d-flex flex-column gap-2" style="max-height: 220px; overflow-y: auto;">
+              <div class="text-muted small text-center py-4">No hay registros críticos cargados</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="section-title"><i class="bi bi-table"></i> Cuadro Informativo</div>
+      <!-- SECCIÓN 5: CUADRO INFORMATIVO (DATATABLE) -->
+      <div class="section-title"><i class="bi bi-table"></i> Cuadro Informativo de Entregas</div>
       <div class="card-panel" id="tabla-card">
         <div class="table-responsive">
           <table id="tablaPedidos" class="table table-striped table-hover align-middle w-100">
@@ -379,11 +517,46 @@
     </div>
   </div>
 
+  <!-- MODAL: AGRUPADO POR CLIENTE -->
+  <div class="modal fade" id="modalAgrupadoCliente" tabindex="-1" aria-labelledby="modalAgrupadoClienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+      <div class="modal-content card-panel border-0">
+        <div class="modal-header border-bottom">
+          <h5 class="modal-title fw-bold" id="modalAgrupadoClienteLabel"><i class="bi bi-people-fill text-primary"></i> Resumen de Vencidos Agrupados por Cliente</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="text-muted small">Detalle consolidado de clientes que presentan entregas demoradas o críticas pendientes de preparación.</p>
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover align-middle" id="tablaModalCliente">
+              <thead class="table-light">
+                <tr>
+                  <th>Solicitante / Cliente</th>
+                  <th>Registros Vencidos</th>
+                  <th>Pares Vencidos</th>
+                  <th>Entrega Más Antigua</th>
+                  <th>Acción</th>
+                </tr>
+              </thead>
+              <tbody id="tbodyModalCliente">
+                <!-- Rellenado por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-top">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEPENDENCIAS JS -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/jquery.dataTables.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.11/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/datatables.net@1.13.11/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/datatables.net-bs5@1.13.11/js/dataTables.bootstrap5.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
@@ -396,25 +569,67 @@
       { excel: 'Número de material', etiqueta: 'Número de material', numerico: false },
       { excel: 'Cantidad entrega', etiqueta: 'Cantidad entrega', numerico: true },
       { excel: 'Referencia cliente', etiqueta: 'Referencia cliente', numerico: false },
-      { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false }
+      { excel: 'Flete a cargo de:', etiqueta: 'Flete a cargo de:', numerico: false },
+      { excel: 'Creac. ent', etiqueta: 'Creación', numerico: false }
     ];
 
     let datosOriginales = [];
     let tablaDT = null;
-    let chartClientes, chartModelos, chartDistribucion;
+    let chartAntiguedadParesInstance, chartDistribucionInstance;
+    let modoSoloVencidosActivo = false;
+    let filtroEstadoRapidoActivo = null;
 
     function formatoNumero(n) { return Number(n || 0).toLocaleString('es-AR'); }
+
+    // Cálculo robusto de días vencidos
+    function calcularDiasVencidos(fechaStr) {
+      if (!fechaStr) return { dias: 0, estado: 'normal', etiquetaEstado: 'En plazo' };
+      let fechaCreacion;
+      if (typeof fechaStr === 'number') {
+        const dObj = XLSX.SSF.parse_date_code(fechaStr);
+        if (dObj) {
+          fechaCreacion = new Date(dObj.y, dObj.m - 1, dObj.d);
+        } else {
+          return { dias: 0, estado: 'normal', etiquetaEstado: 'En plazo' };
+        }
+      } else {
+        fechaCreacion = new Date(fechaStr);
+      }
+      
+      if (isNaN(fechaCreacion)) return { dias: 0, estado: 'normal', etiquetaEstado: 'En plazo' };
+
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      fechaCreacion.setHours(0, 0, 0, 0);
+
+      const diferenciaMilisegundos = hoy - fechaCreacion;
+      const dias = Math.floor(diferenciaMilisegundos / (1000 * 60 * 60 * 24));
+
+      if (dias <= 3) return { dias: Math.max(0, dias), estado: 'normal', etiquetaEstado: 'En plazo' };
+      if (dias >= 4 && dias <= 7) return { dias, estado: 'demorado', etiquetaEstado: 'Demorado' };
+      if (dias >= 8 && dias <= 14) return { dias, estado: 'critico', etiquetaEstado: 'Crítico' };
+      return { dias, estado: 'muy_critico', etiquetaEstado: 'Muy crítico' };
+    }
 
     const dropzone = document.getElementById('dropzone');
     const inputArchivo = document.getElementById('inputArchivo');
     const btnCambiarArchivo = document.getElementById('btnCambiarArchivo');
 
     dropzone.addEventListener('click', () => inputArchivo.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) procesarArchivo(e.dataTransfer.files[0]);
+    });
     inputArchivo.addEventListener('change', e => { if (e.target.files[0]) procesarArchivo(e.target.files[0]); });
 
     btnCambiarArchivo.addEventListener('click', () => {
       inputArchivo.value = '';
       datosOriginales = [];
+      modoSoloVencidosActivo = false;
+      filtroEstadoRapidoActivo = null;
       
       if (tablaDT) {
         tablaDT.destroy();
@@ -430,6 +645,7 @@
       btnCambiarArchivo.classList.add('d-none');
       document.getElementById('dashboardContent').classList.add('d-none');
       document.getElementById('estadoVacio').classList.remove('d-none');
+      document.getElementById('bannerAlertaCarga').style.display = 'none';
     });
 
     function procesarArchivo(file) {
@@ -462,6 +678,7 @@
           const indiceCantidad = encabezadosOriginales.indexOf('Cantidad entrega');
           const indiceReferenciaCliente = encabezadosOriginales.indexOf('Referencia cliente');
           const indiceFlete = encabezadosOriginales.indexOf('Flete a cargo de:');
+          const indiceCreacion = encabezadosOriginales.indexOf('Creac. ent');
 
           datosOriginales = filasMatriz
             .slice(filaEncabezadoIdx + 1)
@@ -473,16 +690,32 @@
                 !texto.includes('total de la fc')
               );
             })
-            .map(fila => ({
-              'Entrega': fila[indiceEntrega] == null ? '' : String(fila[indiceEntrega]),
-              'Pedido': fila[indicePedido] == null ? '' : String(fila[indicePedido]),
-              'Solicitante': String(fila[indiceSolicitante] ?? '').trim(),
-              'Número de material': String(fila[indiceMaterial] ?? '').trim(),
-              'Cantidad entrega': parseFloat(fila[indiceCantidad]) || 0,
-              'Referencia cliente': String(fila[indiceReferenciaCliente] ?? '').trim(),
-              'Flete a cargo de:': String(fila[indiceFlete] ?? '').trim(),
-              '_ocultarRef': false
-            }))
+            .map(fila => {
+              let valFecha = indiceCreacion !== -1 ? (fila[indiceCreacion] ?? '') : '';
+              if (typeof valFecha === 'number') {
+                const dObj = XLSX.SSF.parse_date_code(valFecha);
+                if (dObj) {
+                  valFecha = `${dObj.y}-${String(dObj.m).padStart(2,'0')}-${String(dObj.d).padStart(2,'0')}`;
+                }
+              }
+
+              const fechaStr = String(valFecha).substring(0, 10);
+              const infoAntiguedad = calcularDiasVencidos(fechaStr);
+
+              return {
+                'Entrega': fila[indiceEntrega] == null ? '' : String(fila[indiceEntrega]),
+                'Pedido': fila[indicePedido] == null ? '' : String(fila[indicePedido]),
+                'Solicitante': String(fila[indiceSolicitante] ?? '').trim(),
+                'Número de material': String(fila[indiceMaterial] ?? '').trim(),
+                'Cantidad entrega': parseFloat(fila[indiceCantidad]) || 0,
+                'Referencia cliente': String(fila[indiceReferenciaCliente] ?? '').trim(),
+                'Flete a cargo de:': String(fila[indiceFlete] ?? '').trim(),
+                'Creación': fechaStr,
+                '_dias': infoAntiguedad.dias,
+                '_estado': infoAntiguedad.estado,
+                '_ocultarRef': false
+              };
+            })
             .filter(r => r['Entrega']);
 
           document.getElementById('archivoInfo').classList.remove('d-none');
@@ -492,11 +725,38 @@
           document.getElementById('estadoVacio').classList.add('d-none');
           document.getElementById('dashboardContent').classList.remove('d-none');
 
+          mostrarBannerAlertaCarga();
           inicializarFiltros();
           inicializarTabla();
-        } catch (err) { alert('Error al leer el archivo.'); }
+        } catch (err) {
+          console.error(err);
+          alert('Error al leer el archivo. Verifique que sea un Excel o CSV válido.');
+        }
       };
       lector.readAsArrayBuffer(file);
+    }
+
+    function mostrarBannerAlertaCarga() {
+      const banner = document.getElementById('bannerAlertaCarga');
+      const icono = document.getElementById('iconoBannerAlerta');
+      const titulo = document.getElementById('tituloBannerAlerta');
+      const texto = document.getElementById('textoBannerAlerta');
+
+      const vencidosTotal = datosOriginales.filter(r => r._dias > 3);
+      const paresVencidos = vencidosTotal.reduce((s, r) => s + r['Cantidad entrega'], 0);
+
+      if (vencidosTotal.length > 0) {
+        banner.className = 'alert alert-danger d-flex align-items-center justify-content-between mb-4 shadow-sm';
+        icono.className = 'bi bi-exclamation-triangle-fill fs-3 text-danger';
+        titulo.textContent = '⚠️ ATENCIÓN: ENTREGAS VENCIDAS DETECTADAS';
+        texto.textContent = `Hay ${vencidosTotal.length} entregas vencidas que representan ${formatoNumero(paresVencidos)} pares en preparación superior a 3 días.`;
+      } else {
+        banner.className = 'alert alert-success d-flex align-items-center justify-content-between mb-4 shadow-sm';
+        icono.className = 'bi bi-check-circle-fill fs-3 text-success';
+        titulo.textContent = '✓ SIN VENCIMIENTOS CRÍTICOS';
+        texto.textContent = 'No se detectaron entregas con más de 3 días de antigüedad. Todo está en plazo.';
+      }
+      banner.style.display = 'flex';
     }
 
     function inicializarTabla() {
@@ -530,6 +790,28 @@
           if (col.etiqueta === 'Entrega' || col.etiqueta === 'Pedido') return d || '';
           if (col.numerico) return formatoNumero(d);
           
+          if (col.etiqueta === 'Creación') {
+            const info = calcularDiasVencidos(d);
+            let badgeClass = 'bg-success';
+            if (info.estado === 'demorado') badgeClass = 'bg-warning text-dark';
+            if (info.estado === 'critico') badgeClass = 'bg-orange text-white';
+            if (info.estado === 'muy_critico') badgeClass = 'bg-danger text-white';
+
+            let badgeBgColor = '#107C10';
+            if (info.estado === 'demorado') badgeBgColor = '#C19C00';
+            if (info.estado === 'critico') badgeBgColor = '#fd7e14';
+            if (info.estado === 'muy_critico') badgeBgColor = '#D13438';
+
+            return `
+              <div class="d-flex flex-column align-items-center justify-content-center gap-1">
+                <span>${d || 'S/F'}</span>
+                <span class="badge badge-estado" style="background-color: ${badgeBgColor};">
+                  ${info.dias} días | ${info.etiquetaEstado.toUpperCase()}
+                </span>
+              </div>
+            `;
+          }
+
           if (col.etiqueta === 'Referencia cliente') {
             const estaOculto = row._ocultarRef === true;
             const textoMostrar = estaOculto ? '*** OCULTO ***' : (d || '');
@@ -549,6 +831,27 @@
         }
       }));
 
+      // Extensión de búsqueda personalizada de DataTables para manejar "Ver solo vencidos" o "Estado rápido"
+      $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+        if (settings.nTable.id !== 'tablaPedidos') return true;
+        const rowData = datosOriginales[dataIndex];
+        if (!rowData) return true;
+
+        if (modoSoloVencidosActivo && rowData._dias <= 3) {
+          return false;
+        }
+
+        if (filtroEstadoRapidoActivo) {
+          if (filtroEstadoRapidoActivo === 'vencidos_total') {
+            if (rowData._dias <= 3) return false;
+          } else {
+            if (rowData._estado !== filtroEstadoRapidoActivo) return false;
+          }
+        }
+
+        return true;
+      });
+
       tablaDT = $('#tablaPedidos').DataTable({
         data: datosOriginales,
         columns: columnasDT,
@@ -556,23 +859,36 @@
         scrollY: '45vh',
         scrollCollapse: true,
         pageLength: 25,
+        order: [[7, 'desc']], // Ordenar por creación descendente por defecto
         dom: '<"d-flex justify-content-between mb-2"l>rtip',
         language: {
-          emptyTable: "No hay datos",
+          emptyTable: "No hay datos disponibles",
           info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
           lengthMenu: "Mostrar _MENU_ filas",
-          paginate: { next: "Siguiente", previous: "Anterior" }
+          paginate: { next: "Siguiente", previous: "Anterior" },
+          search: "Buscar:"
+        },
+        createdRow: function (row, data, dataIndex) {
+          $(row).removeClass('row-estado-normal row-estado-demorado row-estado-critico row-estado-muy-critico');
+          if (data._estado === 'demorado') $(row).addClass('row-estado-demorado');
+          else if (data._estado === 'critico') $(row).addClass('row-estado-critico');
+          else if (data._estado === 'muy_critico') $(row).addClass('row-estado-muy-critico');
+          else $(row).addClass('row-estado-normal');
         }
       });
 
       $('#tablaPedidos tbody').off('click', '.btn-ocultar-ref').on('click', '.btn-ocultar-ref', function () {
-        const idx = $(this).data('row-idx');
+        const idx = tablaDT.row($(this).closest('tr')).index();
         const filaDatos = tablaDT.row(idx).data();
         filaDatos._ocultarRef = !filaDatos._ocultarRef;
-        tablaDT.row(idx).data(filaDatos).draw('page');
+        tablaDT.row(idx).data(filaDatos).draw(false);
       });
 
-      tablaDT.on('draw', actualizarDashboard);
+      tablaDT.on('draw', () => {
+        actualizarDashboard();
+        actualizarFiltrosActivosUI();
+      });
+
       actualizarDashboard();
     }
 
@@ -597,13 +913,76 @@
       document.getElementById('filtroSolicitante').onchange = () => aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
       document.getElementById('filtroMaterial').onchange = () => aplicarFiltroColumna('Número de material', 'filtroMaterial');
       document.getElementById('filtroFlete').onchange = () => aplicarFiltroColumna('Flete a cargo de:', 'filtroFlete');
+      document.getElementById('filtroEstadoAntiguedad').onchange = (e) => {
+        filtroEstadoRapidoActivo = e.target.value || null;
+        if (tablaDT) tablaDT.draw();
+      };
 
       document.getElementById('buscarGlobal').oninput = (e) => { if (tablaDT) tablaDT.search(e.target.value).draw(); };
-      document.getElementById('btnLimpiarFiltros').onclick = () => {
-        ['filtroSolicitante', 'filtroMaterial', 'filtroFlete'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('buscarGlobal').value = '';
-        tablaDT.columns().search('').search('').draw();
+      
+      document.getElementById('btnRestablecerTodo').onclick = () => restearTodoCompleto();
+      document.getElementById('btnVerSoloVencidos').onclick = () => {
+        modoSoloVencidosActivo = !modoSoloVencidosActivo;
+        const btn = document.getElementById('btnVerSoloVencidos');
+        if (modoSoloVencidosActivo) {
+          btn.className = 'btn btn-sm btn-warning fw-semibold text-dark';
+          btn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Ver Todos (Filtro Activo)';
+          filtroEstadoRapidoActivo = null;
+          document.getElementById('filtroEstadoAntiguedad').value = '';
+          // Ordenar inteligentemente por más días vencidos si se activa
+          if (tablaDT) tablaDT.order([[7, 'asc']]);
+        } else {
+          btn.className = 'btn btn-sm btn-danger fw-semibold';
+          btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Ver Solo Vencidos (<span id="txtCountVencidosBtn">0</span>)';
+        }
+        if (tablaDT) tablaDT.draw();
       };
+    }
+
+    function restearTodoCompleto() {
+      ['filtroSolicitante', 'filtroMaterial', 'filtroFlete', 'filtroEstadoAntiguedad'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('buscarGlobal').value = '';
+      modoSoloVencidosActivo = false;
+      filtroEstadoRapidoActivo = null;
+      const btn = document.getElementById('btnVerSoloVencidos');
+      btn.className = 'btn btn-sm btn-danger fw-semibold';
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Ver Solo Vencidos (<span id="txtCountVencidosBtn">0</span>)';
+
+      if (tablaDT) {
+        tablaDT.search('').columns().search('').order([[7, 'desc']]).draw();
+      }
+    }
+
+    function resetearFiltrosParciales() {
+      ['filtroSolicitante', 'filtroMaterial', 'filtroFlete', 'filtroEstadoAntiguedad'].forEach(id => document.getElementById(id).value = '');
+      document.getElementById('buscarGlobal').value = '';
+      modoSoloVencidosActivo = false;
+      filtroEstadoRapidoActivo = null;
+      if (tablaDT) {
+        tablaDT.search('').columns().search('').draw();
+      }
+    }
+
+    function filtrarPorEstadoRapido(estado) {
+      modoSoloVencidosActivo = false;
+      const btn = document.getElementById('btnVerSoloVencidos');
+      btn.className = 'btn btn-sm btn-danger fw-semibold';
+      btn.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i> ⚠️ Ver Solo Vencidos (<span id="txtCountVencidosBtn">0</span>)';
+
+      filtroEstadoRapidoActivo = estado;
+      if (estado !== 'vencidos_total') {
+        document.getElementById('filtroEstadoAntiguedad').value = estado;
+      } else {
+        document.getElementById('filtroEstadoAntiguedad').value = '';
+      }
+      if (tablaDT) {
+        tablaDT.order([[7, 'asc']]).draw();
+      }
+    }
+
+    function filtrarPorAntiguedadMaxima() {
+      // Encuentra la entrega con mayor antigüedad y filtra por ella o filtra los muy críticos
+      filtrarPorEstadoRapido('muy_critico');
     }
 
     function aplicarFiltroColumna(etiqueta, idSelect) {
@@ -618,55 +997,202 @@
       }
     }
 
+    function actualizarFiltrosActivosUI() {
+      const contenedor = document.getElementById('contenedorFiltrosActivos');
+      const valGlobal = document.getElementById('buscarGlobal').value;
+      const valSol = document.getElementById('filtroSolicitante').value;
+      const valMat = document.getElementById('filtroMaterial').value;
+      const valFle = document.getElementById('filtroFlete').value;
+      const valEst = document.getElementById('filtroEstadoAntiguedad').value;
+
+      let html = '<span class="fw-semibold">Filtros activos:</span>';
+      let count = 0;
+
+      if (valGlobal) { count++; html += ` <span class="badge bg-primary">Búsqueda: "${valGlobal}"</span>`; }
+      if (valSol) { count++; html += ` <span class="badge bg-primary">Cliente: ${valSol}</span>`; }
+      if (valMat) { count++; html += ` <span class="badge bg-primary">Material: ${valMat}</span>`; }
+      if (valFle) { count++; html += ` <span class="badge bg-primary">Flete: ${valFle === '__VACIOS__' ? 'Vacío' : valFle}</span>`; }
+      if (valEst) { count++; html += ` <span class="badge bg-primary">Estado: ${valEst}</span>`; }
+      if (modoSoloVencidosActivo) { count++; html += ` <span class="badge bg-danger">Solo Vencidos (>3d)</span>`; }
+
+      if (count === 0) {
+        html += ' <span class="badge bg-secondary">Ninguno</span>';
+      }
+      contenedor.innerHTML = html;
+    }
+
     function actualizarDashboard() {
       if (!tablaDT) return;
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
+      const filasFiltradas = tablaDT.rows({ search: 'applied' }).data().toArray();
 
-      const totalFilas = filas.length;
-      const totalPares = filas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
-      const totalClientes = new Set(filas.map(f => f['Solicitante'])).size;
-      const totalModelos = new Set(filas.map(f => f['Número de material'])).size;
+      const totalFilas = filasFiltradas.length;
+      const totalPares = filasFiltradas.reduce((s, f) => s + (parseFloat(f['Cantidad entrega']) || 0), 0);
+      const totalClientes = new Set(filasFiltradas.map(f => f['Solicitante'])).size;
+      
+      const vencidosFiltrados = filasFiltradas.filter(f => f._dias > 3);
+      const paresVencidos = vencidosFiltrados.reduce((s, f) => s + (f['Cantidad entrega'] || 0), 0);
+
+      // Conteo por estados generales (de las filas aplicadas)
+      const countNormal = filasFiltradas.filter(f => f._estado === 'normal').length;
+      const countDemorado = filasFiltradas.filter(f => f._estado === 'demorado').length;
+      const countCritico = filasFiltradas.filter(f => f._estado === 'critico').length;
+      const countMuyCritico = filasFiltradas.filter(f => f._estado === 'muy_critico').length;
 
       document.getElementById('kpiPedidos').textContent = formatoNumero(totalFilas);
       document.getElementById('kpiPares').textContent = formatoNumero(totalPares);
       document.getElementById('kpiClientes').textContent = formatoNumero(totalClientes);
-      document.getElementById('kpiModelos').textContent = formatoNumero(totalModelos);
+      document.getElementById('kpiParesVencidos').textContent = formatoNumero(paresVencidos);
 
-      const txtTotalPares = formatoNumero(totalPares);
+      document.getElementById('kpiCountNormal').textContent = formatoNumero(countNormal);
+      document.getElementById('kpiCountDemorado').textContent = formatoNumero(countDemorado);
+      document.getElementById('kpiCountCritico').textContent = formatoNumero(countCritico);
+      document.getElementById('kpiCountMuyCritico').textContent = formatoNumero(countMuyCritico);
+
+      const txtBtnVencidos = document.getElementById('txtCountVencidosBtn');
+      if (txtBtnVencidos) txtBtnVencidos.textContent = vencidosFiltrados.length;
+
+      // Entrega más antigua
+      if (filasFiltradas.length > 0) {
+        const masAntigua = [...filasFiltradas].sort((a, b) => b._dias - a._dias)[0];
+        document.getElementById('kpiAntiguedadMax').textContent = `${masAntigua._dias} días`;
+        document.getElementById('kpiAntiguedadMaxCliente').textContent = `${masAntigua['Solicitante']} (Ent: ${masAntigua['Entrega']})`;
+      } else {
+        document.getElementById('kpiAntiguedadMax').textContent = `0 días`;
+        document.getElementById('kpiAntiguedadMaxCliente').textContent = `Sin registros`;
+      }
+
       const elTotalWeb = document.getElementById('totalSumaCantidad');
-      if (elTotalWeb) elTotalWeb.textContent = txtTotalPares;
+      if (elTotalWeb) elTotalWeb.textContent = formatoNumero(totalPares);
 
-      const mapC = new Map(); filas.forEach(f => mapC.set(f['Solicitante'], (mapC.get(f['Solicitante']) || 0) + (f['Cantidad entrega'] || 0)));
-      const topC = [...mapC.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-      if (chartClientes) chartClientes.destroy();
-      chartClientes = new Chart(document.getElementById('chartTopClientes'), {
-        type: 'bar', data: { labels: topC.map(c => c[0].substring(0, 12)), datasets: [{ data: topC.map(c => c[1]), backgroundColor: '#999CE2' }] },
-        options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      // Gráfico de Antigüedad por Pares
+      const pares0_3 = filasFiltradas.filter(f => f._dias <= 3).reduce((s, f) => s + f['Cantidad entrega'], 0);
+      const pares4_7 = filasFiltradas.filter(f => f._dias >= 4 && f._dias <= 7).reduce((s, f) => s + f['Cantidad entrega'], 0);
+      const pares8_14 = filasFiltradas.filter(f => f._dias >= 8 && f._dias <= 14).reduce((s, f) => s + f['Cantidad entrega'], 0);
+      const paresMas14 = filasFiltradas.filter(f => f._dias > 14).reduce((s, f) => s + f['Cantidad entrega'], 0);
+
+      if (chartAntiguedadParesInstance) chartAntiguedadParesInstance.destroy();
+      chartAntiguedadParesInstance = new Chart(document.getElementById('chartAntiguedadPares'), {
+        type: 'bar',
+        data: {
+          labels: ['0-3 días', '4-7 días', '8-14 días', '+14 días'],
+          datasets: [{
+            data: [pares0_3, pares4_7, pares8_14, paresMas14],
+            backgroundColor: ['#107C10', '#C19C00', '#fd7e14', '#D13438']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
       });
 
-      const mapM = new Map(); filas.forEach(f => mapM.set(f['Número de material'], (mapM.get(f['Número de material']) || 0) + (f['Cantidad entrega'] || 0)));
-      const topM = [...mapM.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-      if (chartModelos) chartModelos.destroy();
-      chartModelos = new Chart(document.getElementById('chartTopModelos'), {
-        type: 'bar', data: { labels: topM.map(m => m[0]), datasets: [{ data: topM.map(m => m[1]), backgroundColor: '#34D6E0' }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      // Gráfico de Fletes
+      const mapF = new Map();
+      filasFiltradas.forEach(f => {
+        const key = f['Flete a cargo de:'] || 'No definido';
+        mapF.set(key, (mapF.get(key) || 0) + (f['Cantidad entrega'] || 0));
+      });
+      if (chartDistribucionInstance) chartDistribucionInstance.destroy();
+      chartDistribucionInstance = new Chart(document.getElementById('chartDistribucion'), {
+        type: 'doughnut',
+        data: {
+          labels: [...mapF.keys()],
+          datasets: [{ data: [...mapF.values()], backgroundColor: ['#5B5FC7', '#00B7C3', '#A67CD8', '#C19C00', '#D13438'] }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 9 } } } }
+        }
       });
 
-      const mapF = new Map(); filas.forEach(f => mapF.set(f['Flete a cargo de:'] || 'No definido', (mapF.get(f['Flete a cargo de:'] || 'No definido') || 0) + (f['Cantidad entrega'] || 0)));
-      if (chartDistribucion) chartDistribucion.destroy();
-      chartDistribucion = new Chart(document.getElementById('chartDistribucion'), {
-        type: 'doughnut', data: { labels: [...mapF.keys()], datasets: [{ data: [...mapF.values()], backgroundColor: ['#999CE2', '#34D6E0', '#A67CD8'] }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 8, font: { size: 8 } } } } }
+      // Panel de Prioridades (Top 5 más antiguos)
+      const topCriticos = [...vencidosFiltrados].sort((a, b) => b._dias - a._dias).slice(0, 5);
+      const contenedorPrioridades = document.getElementById('listaPrioridades');
+      if (topCriticos.length > 0) {
+        let htmlP = '';
+        topCriticos.forEach(item => {
+          htmlP += `
+            <div class="p-2 rounded prioridad-item" onclick="enfocarEntrega('${item['Entrega']}')">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-bold small text-danger"><i class="bi bi-truck"></i> Entrega: ${item['Entrega']}</span>
+                <span class="badge bg-danger">${item._dias} días</span>
+              </div>
+              <div class="small text-truncate" style="color: var(--text);"><strong>Cliente:</strong> ${item['Solicitante']}</div>
+              <div class="small text-muted text-truncate"><strong>Material:</strong> ${item['Número de material']} | <strong>Pares:</strong> ${formatoNumero(item['Cantidad entrega'])}</div>
+            </div>
+          `;
+        });
+        contenedorPrioridades.innerHTML = htmlP;
+      } else {
+        contenedorPrioridades.innerHTML = '<div class="text-muted small text-center py-4">No hay registros críticos o demorados con los filtros actuales</div>';
+      }
+
+      // Actualizar Modal Agrupado por Cliente
+      actualizarModalClientes(vencidosFiltrados);
+    }
+
+    function enfocarEntrega(nroEntrega) {
+      document.getElementById('buscarGlobal').value = nroEntrega;
+      if (tablaDT) tablaDT.search(nroEntrega).draw();
+    }
+
+    function actualizarModalClientes(vencidosArr) {
+      const mapClientes = new Map();
+      vencidosArr.forEach(item => {
+        const cliente = item['Solicitante'] || 'S/D';
+        if (!mapClientes.has(cliente)) {
+          mapClientes.set(cliente, { registros: 0, pares: 0, maxDias: 0, entregaMax: '' });
+        }
+        const dataC = mapClientes.get(cliente);
+        dataC.registros += 1;
+        dataC.pares += item['Cantidad entrega'];
+        if (item._dias > dataC.maxDias) {
+          dataC.maxDias = item._dias;
+          dataC.entregaMax = item['Entrega'];
+        }
       });
+
+      const tbody = document.getElementById('tbodyModalCliente');
+      const clientesOrdenados = [...mapClientes.entries()].sort((a, b) => b[1].maxDias - a[1].maxDias);
+
+      if (clientesOrdenados.length > 0) {
+        let htmlC = '';
+        clientesOrdenados.forEach(([cliente, info]) => {
+          htmlC += `
+            <tr>
+              <td class="fw-semibold text-start">${cliente}</td>
+              <td><span class="badge bg-danger">${info.registros} reg.</span></td>
+              <td>${formatoNumero(info.pares)}</td>
+              <td><span class="badge bg-dark">${info.maxDias} días</span> (Ent: ${info.entregaMax})</td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary py-0 px-2" data-bs-dismiss="modal" onclick="filtrarClienteModal('${cliente}')">
+                  <i class="bi bi-search"></i> Ver
+                </button>
+              </td>
+            </tr>
+          `;
+        });
+        tbody.innerHTML = htmlC;
+      } else {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-muted py-3">No hay clientes con registros vencidos pendientes</td></tr>`;
+      }
+    }
+
+    function filtrarClienteModal(nombreCliente) {
+      document.getElementById('filtroSolicitante').value = nombreCliente;
+      aplicarFiltroColumna('Solicitante', 'filtroSolicitante');
     }
 
     function generarHtmlCuadroStyled() {
       const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
       
-      let html = `<table style="border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; width: 100%; border: 1px solid #C8C6C4;">`;
+      let html = `<table style="border-collapse: collapse; font-family: 'Segoe UI', Arial, sans-serif; font-size: 10pt; width: 100%; border: 1px solid #C8C6C4;">`;
       html += '<thead style="background-color: #0F2537; color: #FFFFFF; font-weight: bold; text-align: center;"><tr>';
       CONFIG_COLUMNAS.forEach(col => {
-        html += `<th style="border: 1px solid #3B3A39; padding: 8px 12px; text-align: center; font-weight: bold;">${col.etiqueta}</th>`;
+        html += `<th style="border: 1px solid #3B3A39; padding: 8px 10px; text-align: center;">${col.etiqueta}</th>`;
       });
       html += '</tr></thead><tbody>';
       
@@ -678,6 +1204,8 @@
           let val = fila[col.etiqueta] ?? '';
           if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) {
             val = '*** OCULTO ***';
+          } else if (col.etiqueta === 'Creación') {
+            val = `${fila['Creación']} (${fila._dias} días - ${fila._estado.toUpperCase()})`;
           }
           
           let displayVal = val;
@@ -687,7 +1215,7 @@
             displayVal = num.toLocaleString('es-AR');
           }
           
-          html += `<td style="border: 1px solid #E1DFDD; padding: 6px 12px; text-align: center; color: #201F1E;">${displayVal}</td>`;
+          html += `<td style="border: 1px solid #E1DFDD; padding: 6px 10px; text-align: center; color: #201F1E;">${displayVal}</td>`;
         });
         html += '</tr>';
       });
@@ -695,11 +1223,11 @@
       
       CONFIG_COLUMNAS.forEach(col => {
         if (col.etiqueta === 'Entrega') {
-          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px; text-align: center; font-weight: bold; text-transform: uppercase;">TOTALES</td>`;
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 10px; text-align: center; text-transform: uppercase;">TOTALES</td>`;
         } else if (col.etiqueta === 'Cantidad entrega') {
-          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px; text-align: center; font-weight: bold;">${sumaTotalPares.toLocaleString('es-AR')}</td>`;
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 10px; text-align: center;">${sumaTotalPares.toLocaleString('es-AR')}</td>`;
         } else {
-          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 12px;"></td>`;
+          html += `<td style="border: 1px solid #C8C6C4; padding: 8px 10px;"></td>`;
         }
       });
       html += '</tr></tfoot></table>';
@@ -711,14 +1239,17 @@
       const blob = new Blob(['\uFEFF' + htmlCuadro], { type: 'application/vnd.ms-excel;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'cuadro_entregas_estilizado.xls';
+      a.download = 'cuadro_entregas_vencimientos.xls';
       a.click();
     });
 
     document.getElementById('btnCopiarExcel').addEventListener('click', function() {
       const htmlCuadro = generarHtmlCuadroStyled();
       const blobHtml = new Blob([htmlCuadro], { type: 'text/html' });
-      const blobText = new Blob([tablaDT.rows({ search: 'applied' }).data().toArray().map(f => CONFIG_COLUMNAS.map(c => f[c.etiqueta]).join('\t')).join('\n')], { type: 'text/plain' });
+      const blobText = new Blob([tablaDT.rows({ search: 'applied' }).data().toArray().map(f => CONFIG_COLUMNAS.map(c => {
+        if(c.etiqueta === 'Creación') return `${f['Creación']} (${f._dias} días)`;
+        return f[c.etiqueta];
+      }).join('\t')).join('\n')], { type: 'text/plain' });
       
       if (navigator.clipboard && navigator.clipboard.write) {
         const item = new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText });
@@ -730,7 +1261,7 @@
             this.innerHTML = originalText;
             this.classList.remove('btn-primary'); this.classList.add('btn-success');
           }, 2000);
-        }).catch(err => alert('No se pudo copiar el cuadro.'));
+        }).catch(err => alert('No se pudo copiar el cuadro al portapapeles.'));
       } else {
         alert('Tu navegador no soporta esta funcionalidad.');
       }
@@ -738,7 +1269,11 @@
 
     document.getElementById('btnExportCSV').addEventListener('click', () => {
       const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
-      const filas = tablaDT.rows({ search: 'applied' }).data().toArray();
+      const filas = tablaDT.rows({ search: 'applied' }).data().toArray().map(f => {
+        let copia = {...f};
+        copia['Creación'] = `${f['Creación']} (${f._dias}d)`;
+        return copia;
+      });
       const hoja = XLSX.utils.json_to_sheet(filas, { header: cabeceras });
       const blob = new Blob(['\uFEFF' + XLSX.utils.sheet_to_csv(hoja)], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cuadro_entregas.csv'; a.click();
@@ -749,11 +1284,16 @@
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
       const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
 
+      const filasFiltradas = tablaDT.rows({ search: 'applied' }).data().toArray();
       let sumaTotalPares = 0;
-      const filasDatos = tablaDT.rows({ search: 'applied' }).data().toArray().map(fila => {
+      const vencidosCount = filasFiltradas.filter(f => f._dias > 3).length;
+      const vencidosPares = filasFiltradas.filter(f => f._dias > 3).reduce((s, f) => s + f['Cantidad entrega'], 0);
+
+      const filasDatos = filasFiltradas.map(fila => {
         return CONFIG_COLUMNAS.map(col => {
           let val = fila[col.etiqueta] ?? '';
-          if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) return '';
+          if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) return '***';
+          if (col.etiqueta === 'Creación') return `${val} (${fila._dias}d)`;
           if (col.numerico) {
             sumaTotalPares += parseFloat(val) || 0;
             return formatoNumero(val);
@@ -769,12 +1309,17 @@
       });
       filasDatos.push(filaTotal);
 
-      doc.setFontSize(14).setFont("Helvetica", "bold").text('Resumen de Entregas y Preparación Logística', 40, 35);
+      // Cabecera del PDF
+      const fechaGen = new Date().toLocaleDateString('es-AR');
+      doc.setFontSize(14).setFont("Helvetica", "bold").text('REPORTE DE ENTREGAS Y CONTROL DE VENCIMIENTOS LOGÍSTICOS', 40, 30);
+      doc.setFontSize(9).setFont("Helvetica", "normal");
+      doc.text(`Fecha de generación: ${fechaGen} | Registros: ${filasFiltradas.length} | Pares Totales: ${formatoNumero(sumaTotalPares)} | Vencidos (>3d): ${vencidosCount} (${formatoNumero(vencidosPares)} pares)`, 40, 48);
+
       doc.autoTable({
         head: [cabeceras],
         body: filasDatos,
         startY: 60,
-        margin: { left: 40 },
+        margin: { left: 40, right: 40 },
         styles: { fontSize: 8, halign: 'center' },
         headStyles: { fillColor: [91, 95, 199] },
         didParseCell: function (data) {
@@ -782,18 +1327,9 @@
             data.cell.styles.fontStyle = 'bold';
             data.cell.styles.fillColor = [240, 240, 240];
           }
-        },
-        columnStyles: {
-          0: { cellWidth: 60 },
-          1: { cellWidth: 60 },
-          2: { cellWidth: 120 },
-          3: { cellWidth: 90 },
-          4: { cellWidth: 60 },
-          5: { cellWidth: 110 },
-          6: { cellWidth: 'auto' }
         }
       });
-      doc.save('reporte_entregas.pdf');
+      doc.save('reporte_vencimientos_entregas.pdf');
     });
 
     document.getElementById('btnTema').addEventListener('click', () => {
