@@ -730,7 +730,7 @@
           inicializarTabla();
         } catch (err) {
           console.error(err);
-          alert('Error al leer el archivo. Verifique que sea un Excel o CSV válido.');
+          alert('Error al leer el archivo. Verifique que seja un Excel o CSV válido.');
         }
       };
       lector.readAsArrayBuffer(file);
@@ -981,7 +981,6 @@
     }
 
     function filtrarPorAntiguedadMaxima() {
-      // Encuentra la entrega con mayor antigüedad y filtra por ella o filtra los muy críticos
       filtrarPorEstadoRapido('muy_critico');
     }
 
@@ -1032,7 +1031,6 @@
       const vencidosFiltrados = filasFiltradas.filter(f => f._dias > 3);
       const paresVencidos = vencidosFiltrados.reduce((s, f) => s + (f['Cantidad entrega'] || 0), 0);
 
-      // Conteo por estados generales (de las filas aplicadas)
       const countNormal = filasFiltradas.filter(f => f._estado === 'normal').length;
       const countDemorado = filasFiltradas.filter(f => f._estado === 'demorado').length;
       const countCritico = filasFiltradas.filter(f => f._estado === 'critico').length;
@@ -1051,7 +1049,6 @@
       const txtBtnVencidos = document.getElementById('txtCountVencidosBtn');
       if (txtBtnVencidos) txtBtnVencidos.textContent = vencidosFiltrados.length;
 
-      // Entrega más antigua
       if (filasFiltradas.length > 0) {
         const masAntigua = [...filasFiltradas].sort((a, b) => b._dias - a._dias)[0];
         document.getElementById('kpiAntiguedadMax').textContent = `${masAntigua._dias} días`;
@@ -1064,7 +1061,6 @@
       const elTotalWeb = document.getElementById('totalSumaCantidad');
       if (elTotalWeb) elTotalWeb.textContent = formatoNumero(totalPares);
 
-      // Gráfico de Antigüedad por Pares
       const pares0_3 = filasFiltradas.filter(f => f._dias <= 3).reduce((s, f) => s + f['Cantidad entrega'], 0);
       const pares4_7 = filasFiltradas.filter(f => f._dias >= 4 && f._dias <= 7).reduce((s, f) => s + f['Cantidad entrega'], 0);
       const pares8_14 = filasFiltradas.filter(f => f._dias >= 8 && f._dias <= 14).reduce((s, f) => s + f['Cantidad entrega'], 0);
@@ -1088,7 +1084,6 @@
         }
       });
 
-      // Gráfico de Fletes
       const mapF = new Map();
       filasFiltradas.forEach(f => {
         const key = f['Flete a cargo de:'] || 'No definido';
@@ -1108,7 +1103,6 @@
         }
       });
 
-      // Panel de Prioridades (Top 5 más antiguos)
       const topCriticos = [...vencidosFiltrados].sort((a, b) => b._dias - a._dias).slice(0, 5);
       const contenedorPrioridades = document.getElementById('listaPrioridades');
       if (topCriticos.length > 0) {
@@ -1130,7 +1124,6 @@
         contenedorPrioridades.innerHTML = '<div class="text-muted small text-center py-4">No hay registros críticos o demorados con los filtros actuales</div>';
       }
 
-      // Actualizar Modal Agrupado por Cliente
       actualizarModalClientes(vencidosFiltrados);
     }
 
@@ -1282,18 +1275,17 @@
     document.getElementById('btnExportPDF').addEventListener('click', () => {
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
-      const cabeceras = CONFIG_COLUMNAS.map(c => c.etiqueta);
+      
+      const columnasPdf = CONFIG_COLUMNAS.filter(c => c.etiqueta !== 'Creación');
+      const cabeceras = columnasPdf.map(c => c.etiqueta);
 
       const filasFiltradas = tablaDT.rows({ search: 'applied' }).data().toArray();
       let sumaTotalPares = 0;
-      const vencidosCount = filasFiltradas.filter(f => f._dias > 3).length;
-      const vencidosPares = filasFiltradas.filter(f => f._dias > 3).reduce((s, f) => s + f['Cantidad entrega'], 0);
 
       const filasDatos = filasFiltradas.map(fila => {
-        return CONFIG_COLUMNAS.map(col => {
+        return columnasPdf.map(col => {
           let val = fila[col.etiqueta] ?? '';
           if (col.etiqueta === 'Referencia cliente' && fila._ocultarRef === true) return '***';
-          if (col.etiqueta === 'Creación') return `${val} (${fila._dias}d)`;
           if (col.numerico) {
             sumaTotalPares += parseFloat(val) || 0;
             return formatoNumero(val);
@@ -1302,23 +1294,19 @@
         });
       });
 
-      const filaTotal = CONFIG_COLUMNAS.map(col => {
+      const filaTotal = columnasPdf.map(col => {
         if (col.etiqueta === 'Entrega') return 'TOTAL GENERAL';
         if (col.etiqueta === 'Cantidad entrega') return formatoNumero(sumaTotalPares);
         return '';
       });
       filasDatos.push(filaTotal);
 
-      // Cabecera del PDF
-      const fechaGen = new Date().toLocaleDateString('es-AR');
-      doc.setFontSize(14).setFont("Helvetica", "bold").text('REPORTE DE ENTREGAS Y CONTROL DE VENCIMIENTOS LOGÍSTICOS', 40, 30);
-      doc.setFontSize(9).setFont("Helvetica", "normal");
-      doc.text(`Fecha de generación: ${fechaGen} | Registros: ${filasFiltradas.length} | Pares Totales: ${formatoNumero(sumaTotalPares)} | Vencidos (>3d): ${vencidosCount} (${formatoNumero(vencidosPares)} pares)`, 40, 48);
+      doc.setFontSize(14).setFont("Helvetica", "bold").text('REPORTE DE ENTREGA EN PREPARACIÓN', 40, 35);
 
       doc.autoTable({
         head: [cabeceras],
         body: filasDatos,
-        startY: 60,
+        startY: 50,
         margin: { left: 40, right: 40 },
         styles: { fontSize: 8, halign: 'center' },
         headStyles: { fillColor: [91, 95, 199] },
