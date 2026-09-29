@@ -254,6 +254,40 @@
     .prioridad-item:hover {
       background: rgba(209, 52, 56, 0.06);
     }
+
+    /* ANIMACIÓN DE FLAMEO PARA EL FUEGUITO */
+    @keyframes flamear {
+      0% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 2px rgba(209, 52, 56, 0.4));
+      }
+      20% {
+        transform: scale(1.15) rotate(-6deg) translateY(-1px);
+        filter: drop-shadow(0 0 5px rgba(253, 126, 20, 0.7));
+      }
+      40% {
+        transform: scale(0.95) rotate(4deg) translateY(1px);
+        filter: drop-shadow(0 0 3px rgba(193, 156, 0, 0.5));
+      }
+      60% {
+        transform: scale(1.1) rotate(-3deg) translateY(-2px);
+        filter: drop-shadow(0 0 6px rgba(209, 52, 56, 0.8));
+      }
+      80% {
+        transform: scale(1.05) rotate(5deg);
+        filter: drop-shadow(0 0 4px rgba(253, 126, 20, 0.6));
+      }
+      100% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 2px rgba(209, 52, 56, 0.4));
+      }
+    }
+
+    .bi-fire {
+      display: inline-block;
+      animation: flamear 1.4s ease-in-out infinite;
+      transform-origin: bottom center;
+    }
   </style>
 </head>
 
@@ -730,7 +764,7 @@
           inicializarTabla();
         } catch (err) {
           console.error(err);
-          alert('Error al leer el archivo. Verifique que seja un Excel o CSV válido.');
+          alert('Error al leer el archivo. Verifique que sea un Excel o CSV válido.');
         }
       };
       lector.readAsArrayBuffer(file);
@@ -792,11 +826,6 @@
           
           if (col.etiqueta === 'Creación') {
             const info = calcularDiasVencidos(d);
-            let badgeClass = 'bg-success';
-            if (info.estado === 'demorado') badgeClass = 'bg-warning text-dark';
-            if (info.estado === 'critico') badgeClass = 'bg-orange text-white';
-            if (info.estado === 'muy_critico') badgeClass = 'bg-danger text-white';
-
             let badgeBgColor = '#107C10';
             if (info.estado === 'demorado') badgeBgColor = '#C19C00';
             if (info.estado === 'critico') badgeBgColor = '#fd7e14';
@@ -831,7 +860,6 @@
         }
       }));
 
-      // Extensión de búsqueda personalizada de DataTables para manejar "Ver solo vencidos" o "Estado rápido"
       $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
         if (settings.nTable.id !== 'tablaPedidos') return true;
         const rowData = datosOriginales[dataIndex];
@@ -859,7 +887,7 @@
         scrollY: '45vh',
         scrollCollapse: true,
         pageLength: 25,
-        order: [[7, 'desc']], // Ordenar por creación descendente por defecto
+        order: [[7, 'desc']],
         dom: '<"d-flex justify-content-between mb-2"l>rtip',
         language: {
           emptyTable: "No hay datos disponibles",
@@ -929,7 +957,6 @@
           btn.innerHTML = '<i class="bi bi-x-circle-fill"></i> Ver Todos (Filtro Activo)';
           filtroEstadoRapidoActivo = null;
           document.getElementById('filtroEstadoAntiguedad').value = '';
-          // Ordenar inteligentemente por más días vencidos si se activa
           if (tablaDT) tablaDT.order([[7, 'asc']]);
         } else {
           btn.className = 'btn btn-sm btn-danger fw-semibold';
